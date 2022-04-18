@@ -6,6 +6,27 @@ import java.util.HashMap;
 
 public class PostgreSQLJDBC {
 
+    private final String _truck = "TRUCK";
+    private final String _truckId = "TRUCK_ID";
+    private final String _x = "X";
+    private final String _y = "Y";
+    private final String _status = "STATUS";
+    private final String _isSentUtruckArrived = "IS_SENTUTRUCKARRIVED";
+    private final String _shipment = "SHIPMENT";
+    private final String _warehouse = "WAREHOUSE";
+    private final String _authentication = "AUTHENTICATION";
+    private final String _uGoPickup = "UGOPICKUP";
+    private final String _uQuery = "UQUERY";
+    private final String _uShipmentResponse = "USHIPMENTRESPONSE";
+    private final String _uShippingResponse = "USHIPPINGRESPONSE";
+    private final String _uTruckArrivedNotification = "UTRUCKARRIVEDNOTIFICATION";
+    private final String _packageId = "PACKAGE_ID";
+    private final String _warehouseId = "WAREHOUSE_ID";
+    private final String _emailAddress = "EMAIL_ADDRESS";
+    private final String _username = "USERNAME";
+    private final String _password = "PASSWORD";
+    private final String _wSeqNum = "W_SEQNUM";
+    private final String _aSeqNum = "A_SEQNUM";
     /*
     HOW TO USE POSTGRESQL
     1. CONNECT TO DATABASE USER
@@ -20,19 +41,20 @@ public class PostgreSQLJDBC {
     //MAIN TRACKING TABLE ON WORLD TRUCK
     private final String CREATE_TRUCK_TABLE = "CREATE TABLE IF NOT EXISTS TRUCK(" +
             "TRUCK_ID BIGINT PRIMARY KEY CHECK (TRUCK_ID >= 0), " +
-            "TRUCK_X INT NOT NULL, " +
-            "TRUCK_Y INT NOT NULL, " +
+            "X INT NOT NULL, " +
+            "Y INT NOT NULL, " +
             "STATUS INT NOT NULL CHECK (STATUS < 7 AND STATUS > 0), " +
             "IS_SENTUTRUCKARRIVED BOOLEAN NOT NULL" +
             ");";
+
     //package_id(long), dest_x(int), dest_y(int), truck_id(long), warehouse_id(long), account_id(int), status(int)
     //status: 7:In Warehouse 8:Delivering 9:Delivered
     //MAIN TRACKING TABLE ON AMAZON REQUEST
 
     private final String CREATE_SHIPMENT_TABLE = "CREATE TABLE IF NOT EXISTS SHIPMENT(" +
             "PACKAGE_ID BIGINT PRIMARY KEY CHECK (PACKAGE_ID >= 0), " +
-            "DEST_X INT NOT NULL, " +
-            "DEST_Y INT NOT NULL, " +
+            "X BIGINT NOT NULL, " +
+            "Y BIGINT NOT NULL, " +
             "TRUCK_ID BIGINT CHECK (TRUCK_ID >= 0), " +
             "WAREHOUSE_ID BIGINT NOT NULL, " +
             "EMAIL_ADDRESS TEXT NOT NULL, " +
@@ -40,16 +62,18 @@ public class PostgreSQLJDBC {
             "FOREIGN KEY (TRUCK_ID) REFERENCES TRUCK(TRUCK_ID) ON DELETE SET NULL," +
             "FOREIGN KEY (WAREHOUSE_ID) REFERENCES WAREHOUSE(WAREHOUSE_ID) ON DELETE SET NULL" +
             ");";
+
     private final String CREATE_WAREHOUSE_TABLE = "CREATE TABLE IF NOT EXISTS WAREHOUSE(" +
             "WAREHOUSE_ID BIGINT PRIMARY KEY CHECK (WAREHOUSE_ID >= 0 )," +
-            "WAREHOUSE_X BIGINT NOT NULL," +
-            "WAREHOUSE_Y BIGINT NOT NULL" +
+            "X BIGINT NOT NULL," +
+            "Y BIGINT NOT NULL" +
             ");";
     private final String CREATE_AUTHENTICATION_TABLE = "CREATE EXTENSION IF NOT EXISTS pgcrypto;" +
             "CREATE TABLE IF NOT EXISTS AUTHENTICATION(" +
             "USERNAME TEXT PRIMARY KEY, " +
             "PASSWORD TEXT NOT NULL" +
             ");";
+
     //SELF USE TABLE TO WORLD RESEND
     private final String CREATE_UGOPICKUP_TABLE = "CREATE TABLE IF NOT EXISTS UGOPICKUP(" +
             "W_SEQNUM BIGINT PRIMARY KEY CHECK(W_SEQNUM >=0)," +
@@ -90,6 +114,7 @@ public class PostgreSQLJDBC {
         try {
             Class.forName("org.postgresql.Driver");
             this.c = DriverManager.getConnection("jdbc:postgresql://localhost:5432/ece568", "ece568", "ece568");
+            this.c.setAutoCommit(false);
             this.databaseMetaData = c.getMetaData();
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
@@ -99,7 +124,42 @@ public class PostgreSQLJDBC {
     }
 
     /**
+     * Drop All Table That Exist
+     * Note that this method should be called only once when start server
+     */
+    public void dropAllTable() {
+        executeStatement(this.DROP_ALL_TABLE);
+        try {
+            this.c.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Create All Table That Needed
+     * Note that this method should be called only once when start server
+     */
+    public void createAllTable() {
+        executeStatement(this.CREATE_TRUCK_TABLE);
+        executeStatement(this.CREATE_WAREHOUSE_TABLE);
+        executeStatement(this.CREATE_SHIPMENT_TABLE);
+        executeStatement(this.CREATE_QUERY_TABLE);
+        executeStatement(this.CREATE_USHIPMENTRESPONSE_TABLE);
+        executeStatement(this.CREATE_AUTHENTICATION_TABLE);
+        executeStatement(this.CREATE_UGOPICKUP_TABLE);
+        executeStatement(this.CREATE_USHIPPINGRESPONSE);
+        executeStatement(this.CREATE_UTRUCKARRIVEDNOTIFICATION);
+        try {
+            this.c.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
      * Execute SQL Command in query
+     * Note that COMMIT IS NEEDED AFTER THIS METHOD
      *
      * @param query command
      */
@@ -138,6 +198,23 @@ public class PostgreSQLJDBC {
         }
         return false;
     }
+    private boolean isPrimaryKeyExist(String table, String key, String id) {
+        String query = "SELECT * FROM " + table + " WHERE " + key + " = " + id + "; ";
+        Statement statement = null;
+        try {
+            statement = this.c.createStatement();
+            ResultSet resultSet = statement.executeQuery(query);
+            if (resultSet.next() == false) {
+                System.out.println(key + ": " + id + "does not exist!");
+                resultSet.close();
+                statement.close();
+                return false;
+            } else return true;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
 
     /**
      * Get Long Entry Value From Table Key = ID Item
@@ -150,7 +227,7 @@ public class PostgreSQLJDBC {
      */
     private Long getLongFromTable(String table, String key, Long id, String entry) {
         String query = "SELECT " + entry + " FROM " + table + " WHERE " + key + " = " + id + ";";
-        Long ans = -1L;
+        Long ans = null;
         try {
             Statement statement = c.createStatement();
             ResultSet resultSet = statement.executeQuery(query);
@@ -179,7 +256,7 @@ public class PostgreSQLJDBC {
      */
     private Integer getIntFromTable(String table, String key, Long id, String entry) {
         String query = "SELECT " + entry + " FROM " + table + " WHERE " + key + " = " + id + ";";
-        Integer ans = -1;
+        Integer ans = null;
         try {
             Statement statement = c.createStatement();
             ResultSet resultSet = statement.executeQuery(query);
@@ -197,32 +274,71 @@ public class PostgreSQLJDBC {
         return ans;
     }
 
-    public void createAllTable() {
-        executeStatement(this.CREATE_TRUCK_TABLE);
-        executeStatement(this.CREATE_WAREHOUSE_TABLE);
-        executeStatement(this.CREATE_SHIPMENT_TABLE);
-        executeStatement(this.CREATE_QUERY_TABLE);
-        executeStatement(this.CREATE_USHIPMENTRESPONSE_TABLE);
-        executeStatement(this.CREATE_AUTHENTICATION_TABLE);
-        executeStatement(this.CREATE_UGOPICKUP_TABLE);
-        executeStatement(this.CREATE_USHIPPINGRESPONSE);
-        executeStatement(this.CREATE_UTRUCKARRIVEDNOTIFICATION);
+    /**
+     * Get Int Entry Value From Table Key = ID Item
+     *
+     * @param table The SQL Table
+     * @param key   The entry key
+     * @param id    The key value
+     * @param entry the data entry name
+     * @return -1 if wrong
+     */
+    private String getStringFromTable(String table, String key, Long id, String entry) {
+        String query = "SELECT " + entry + " FROM " + table + " WHERE " + key + " = " + id + ";";
+        String ans = null;
+        try {
+            Statement statement = c.createStatement();
+            ResultSet resultSet = statement.executeQuery(query);
+            if (resultSet.next()) {
+                ans = resultSet.getString(entry);
+            } else {
+                System.out.println(key + ": id " + entry + " does not exist!");
+            }
+            resultSet.close();
+            statement.close();
+            return ans;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return ans;
     }
 
-    public void dropAllTable() {
-        executeStatement(this.DROP_ALL_TABLE);
+    /**
+     * Update Table Entry of Key=id with newEntryValue
+     * Note that COMMIT IS NEEDED AFTER THIS METHOD
+     *
+     * @param table         The table to update
+     * @param key           The Primary Key
+     * @param id            The Primary Key Value
+     * @param entry         The Entry to Update
+     * @param newEntryValue The New Entry Value
+     */
+    private void updateEntry(String table, String key, Long id, String entry, Integer newEntryValue) {
+        String query = "Update " + table + " SET " + entry + " = " + newEntryValue + " WHERE " + key + " = " + id + ";";
+        executeStatement(query);
     }
 
-    public Boolean isTableExist(String tableName) throws SQLException {
-        ResultSet resultSet = this.databaseMetaData.getTables(null, null, tableName, new String[]{"TABLE"});
-        return resultSet.next();
+    private void updateEntry(String table, String key, Long id, String entry, String newEntryValue) {
+        String query = "Update " + table + " SET " + entry + " = \"" + newEntryValue + "\" WHERE " + key + " = " + id + ";";
+        executeStatement(query);
+    }
+
+    private void updateEntry(String table, String key, Long id, String entry, Long newEntryValue) {
+        String query = "Update " + table + " SET " + entry + " = " + newEntryValue + " WHERE " + key + " = " + id + ";";
+        executeStatement(query);
+    }
+
+    private void updateEntry(String table, String key, Long id, String entry, Boolean newEntryValue) {
+        String query = "Update " + table + " SET " + entry + " = " + newEntryValue + " WHERE " + key + " = " + id + ";";
+        executeStatement(query);
     }
 
     /******************************************************************************************************************
      * TRUCK METHOD
      ******************************************************************************************************************/
+
     public void addTruck(Long truckID, Integer truckX, Integer truckY, Integer status, Boolean isSentUTruckArrived) {
-        String query = "INSERT INTO TRUCK(TRUCK_ID, TRUCK_X, TRUCK_Y, STATUS, IS_SENTUTRUCKARRIVED) VALUES (" +
+        String query = "INSERT INTO " + _truck + "(" + _truckId + ", " + _x + ", " + _y + ", " + _status + ", " + _isSentUtruckArrived + ") VALUES (" +
                 truckID + "," +
                 truckX + "," +
                 truckY + "," +
@@ -230,49 +346,56 @@ public class PostgreSQLJDBC {
                 isSentUTruckArrived +
                 ");";
         executeStatement(query);
+        try {
+            this.c.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     public void updateTruckStatus(Long truckID, Integer setTruckX, Integer setTruckY, Integer setStatus, Boolean setIsSentUTruckArrived) {
-        if (truckID == null) {
-            System.out.println("TruckId should not be NULL!");
-            return;
-        }
-        if (!isPrimaryKeyExist("TRUCK", "TRUCK_ID", truckID)) return;
+        if (!isPrimaryKeyExist(_truck, _truckId, truckID)) return;
         String query;
         if (setTruckX != null && setTruckY != null) {
-            query = "UPDATE TRUCK SET TRUCK_X = " + setTruckX + "," + "TRUCK_Y = " + setTruckY + " WHERE TRUCK_ID = " + truckID + ";";
-            executeStatement(query);
+            updateEntry(_truck, _truckId, truckID, _x, setTruckX);
+            updateEntry(_truck, _truckId, truckID, _y, setTruckY);
         }
         if (setStatus != null) {
-            query = "UPDATE TRUCK SET STATUS = " + setStatus + " WHERE TRUCK_ID = " + truckID + ";";
-            executeStatement(query);
+            updateEntry(_truck, _truckId, truckID, _status, setStatus);
         }
         if (setIsSentUTruckArrived != null) {
-            query = "UPDATE TRUCK SET IS_SENTUTRUCKARRIVED = " + setIsSentUTruckArrived + " WHERE TRUCK_ID = " + truckID + ";";
-            executeStatement(query);
+            updateEntry(_truck, _truckId, truckID, _isSentUtruckArrived, setIsSentUTruckArrived);
+        }
+        try {
+            this.c.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
-    public Integer getTruckX(Long truckID){
-        return getIntFromTable("TRUCK", "TRUCK_ID", truckID, "TRUCK_X");
+
+    public Integer getTruckX(Long truckID) {
+        return getIntFromTable(_truck, _truckId, truckID, _x);
     }
-    public Integer getTruckY(Long truckID){
-        return getIntFromTable("TRUCK", "TRUCK_ID", truckID, "TRUCK_Y");
+
+    public Integer getTruckY(Long truckID) {
+        return getIntFromTable(_truck, _truckId, truckID, _y);
     }
-    public Integer getTruckStatus(Long truckID){
-        return getIntFromTable("TRUCK", "TRUCK_ID", truckID, "STATUS");
+
+    public Integer getTruckStatus(Long truckID) {
+        return getIntFromTable(_truck, _truckId, truckID, _status);
     }
 
     public HashMap<Long, ArrayList<Integer>> getTruckGroupOfStatus(Integer status) {
         HashMap<Long, ArrayList<Integer>> truckHashMap = new HashMap<>();
-        String query = "SELECT * FROM TRUCK WHERE STATUS=" + status+";";
+        String query = "SELECT * FROM " + _truck + " WHERE " + _status + "=" + status + ";";
         try {
             Statement stmt = c.createStatement();
             ResultSet resultSet = stmt.executeQuery(query);
             while (resultSet.next()) {
                 ArrayList<Integer> pos = new ArrayList<>();
-                pos.add(resultSet.getInt("TRUCK_X"));
-                pos.add(resultSet.getInt("TRUCK_Y"));
-                truckHashMap.put(resultSet.getLong("TRUCK_ID"), pos);
+                pos.add(resultSet.getInt(_x));
+                pos.add(resultSet.getInt(_y));
+                truckHashMap.put(resultSet.getLong(_truckId), pos);
             }
             resultSet.close();
             stmt.close();
@@ -282,13 +405,13 @@ public class PostgreSQLJDBC {
         return truckHashMap;
     }
 
-
-
     /******************************************************************************************************************
      * SHIPMENT METHOD
      ******************************************************************************************************************/
-    public void addShipment(Long packageID, Integer X, Integer Y, Long truckID, Long warehouseID, String emailAddress, Integer status) {
-        String query = "INSERT INTO SHIPMENT(PACKAGE_ID, DEST_X, DEST_Y, TRUCK_ID, WAREHOUSE_ID,EMAIL_ADDRESS,STATUS) VALUES (" +
+
+    public void addShipment(Long packageID, Long X, Long Y, Long truckID, Long warehouseID, String emailAddress, Integer status) {
+        String query = "INSERT INTO " + _shipment + "(" + _packageId + ", " + _x + ", " + _y + ", " + _truckId + ", " +
+                _warehouseId + "," + _emailAddress + "," + _status + ") VALUES (" +
                 packageID + "," +
                 X + "," +
                 Y + "," +
@@ -299,30 +422,105 @@ public class PostgreSQLJDBC {
                 status +
                 ");";
         executeStatement(query);
-    }
-
-    public void updateShipmentStatus(Long packageID, Integer status) {
-        if (packageID == null) {
-            System.out.println("PackageID should not be NULL!");
-            return;
-        }
-        String query;
-        query = "SELECT * FROM SHIPMENT WHERE PACKAGE_ID =" + packageID + "; ";
         try {
-            Statement statement = c.createStatement();
-            ResultSet resultSet = statement.executeQuery(query);
-            if (resultSet.next() == false) {
-                System.out.println("Shipment id does not exist!");
-                statement.close();
-                resultSet.close();
-                return;
-            }
+            c.commit();
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        query = "UPDATE SHIPMENT SET STATUS = " + status + " WHERE PACKAGE_ID = " + packageID + ";";
     }
 
+
+    public void updateShipmentStatus(Long packageID, Integer status) {
+        if (!isPrimaryKeyExist(_shipment, _packageId, packageID)) return;
+        updateEntry(_shipment, _packageId, packageID, _status, status);
+        try {
+            this.c.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public Long getShipmentDestX(Long packageID) {
+        return getLongFromTable(_shipment, _packageId, packageID, _x);
+    }
+
+    public Long getShipmentDestY(Long packageID) {
+        return getLongFromTable(_shipment, _packageId, packageID, _y);
+    }
+
+    public Long getShipmentTruckID(Long packageID) {
+        return getLongFromTable(_shipment, _packageId, packageID, _truckId);
+    }
+
+    public Long getShipmentWarehouseID(Long packageID) {
+        return getLongFromTable(_shipment, _packageId, packageID, _warehouseId);
+    }
+
+    public String getShipmentEmailAddress(Long packageID) {
+        return getStringFromTable(_shipment, _packageId, packageID, _emailAddress);
+    }
+
+    public Integer getShipmentStatus(Long packageID) {
+        return getIntFromTable(_shipment, _packageId, packageID, _status);
+    }
+
+    /******************************************************************************************************************
+     * WAREHOUSE METHOD
+     ******************************************************************************************************************/
+    public void addWarehouse(Long wareHouseID, Long warehouseX, Long warehouseY) {
+        String query = "INSERT INTO " + _warehouse + "(" + _x + ", " + _y + ") VALUES (" +
+                warehouseX + "," +
+                warehouseY +
+                ");";
+        executeStatement(query);
+        try {
+            c.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void updateWarehouse(Long warehouseID, Long warehouseX, Long warehouseY){
+        if(!isPrimaryKeyExist(_warehouse,_warehouseId,warehouseID)) return;
+        updateEntry(_warehouse,_warehouseId,warehouseID,_x,warehouseX);
+        updateEntry(_warehouse,_warehouseId,warehouseID,_y,warehouseY);
+        try {
+            c.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+    public Long getWarehouseX(Long warehouseID){
+        return getLongFromTable(_warehouse,_warehouseId,warehouseID,_x);
+    }
+    public Long getWarehouseY(Long warehouseID){
+        return getLongFromTable(_warehouse,_warehouseId,warehouseID,_y);
+    }
+    /******************************************************************************************************************
+     * AUTHENTICATION METHOD
+     ******************************************************************************************************************/
+    public void addAuthentication(String username, String password) {
+        String query = "INSERT INTO " + _authentication + "(" + _username + ", " + _password + ") VALUES (" +
+                username + "," +
+                password +
+                ");";
+        executeStatement(query);
+        try {
+            c.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void updateAuthentication(String username, String password){
+            if(!isPrimaryKeyExist(_authentication,_username,username)) return;
+
+        try {
+            c.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 
     public void close() {
         try {

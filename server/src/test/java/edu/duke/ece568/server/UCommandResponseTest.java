@@ -2,6 +2,7 @@ package edu.duke.ece568.server;
 
 import edu.duke.ece568.server.protocol.WorldAmazon;
 import edu.duke.ece568.server.protocol.WorldUps;
+import edu.duke.ece568.shared.Status;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -47,7 +48,7 @@ public class UCommandResponseTest {
         System.out.println(aConnected.getWorldid());
 
 
-        HashMap hashMap = postgreSQLJDBC.getIdleTruck();
+        HashMap hashMap = postgreSQLJDBC.getTruckGroupOfStatus(new Status().tIdel);
         System.out.println(hashMap);
         //UGoPickup
         uCommand.sendUCommandUGoPickUp(1,1,SequenceNumCounter.getInstance().getCurrent_id());
@@ -60,10 +61,10 @@ public class UCommandResponseTest {
         postgreSQLJDBC.updateTruckStatus(2L,2,3,null,null);
         postgreSQLJDBC.updateTruckStatus(3L,2,3,null,null);
         //Check Database has 2 idle truck
-        hashMap = postgreSQLJDBC.getIdleTruck();
+        hashMap = postgreSQLJDBC.getTruckGroupOfStatus(new Status().tTraveling);
         System.out.println(hashMap);
         postgreSQLJDBC.updateTruckStatus(1L,5,6,3,true);
-        System.out.println(postgreSQLJDBC.getArriveWarehouseTruck());
+        System.out.println(postgreSQLJDBC.getTruckGroupOfStatus(new Status().tArriveWarehouse));
         postgreSQLJDBC.close();
 
     }
