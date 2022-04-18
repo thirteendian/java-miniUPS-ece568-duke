@@ -3,8 +3,6 @@ package edu.duke.ece568.server;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import edu.duke.ece568.server.protocol.*;
-import org.checkerframework.checker.units.qual.C;
 
 public class Server {
 
@@ -71,6 +69,11 @@ public class Server {
         final Integer AMAZON_PORTNUM = 4444;
 
         try {
+            //Establish SQL
+            PostgreSQLJDBC postgreSQLJDBC = new PostgreSQLJDBC();
+            postgreSQLJDBC.dropAllTable();
+            postgreSQLJDBC.createAllTable();
+            postgreSQLJDBC.close();
             //Connect to World, Amazon, Establish Server to Client
             Server server = new Server(WORLD_HOST,WORLD_PORTNUM, CLIENT_PORTNUM, AMAZON_HOST, AMAZON_PORTNUM);
             //World Amazon Thread

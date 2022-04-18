@@ -22,6 +22,14 @@ public class Response {
         return uConnected.toBuilder();
     }
 
+    public WorldUps.UResponses.Builder recvFromWorld() throws IOException {
+        InputStream inputStream = this.serverToWorldSocket.getInputStream();
+        CodedInputStream codedInputStream = CodedInputStream.newInstance(inputStream);
+        //int length = codedInputStream.readRawVarint32();
+        WorldUps.UResponses  uResponses = WorldUps.UResponses.parseFrom(codedInputStream.readByteArray());
+        return uResponses.toBuilder();
+    }
+
     public void recvUConnected(){
         try {
             this.uConnected = recvFromWorldUConnected();
@@ -29,6 +37,7 @@ public class Response {
             e.printStackTrace();
         }
     }
+
     //UConnected
     public Long getWorldid(){
         return this.uConnected.getWorldid();

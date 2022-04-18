@@ -15,11 +15,11 @@ public class UtilAResponse {
         this.serverToWorldSocket = serverToWorldSocket;
     }
 
-    public WorldAmazon.AConnect.Builder recvFromWorldAConnected() throws IOException {
+    public WorldAmazon.AConnected.Builder recvFromWorldAConnected() throws IOException {
         InputStream inputStream = this.serverToWorldSocket.getInputStream();
         CodedInputStream codedInputStream = CodedInputStream.newInstance(inputStream);
         //int length = codedInputStream.readRawVarint32();
-        WorldAmazon.AConnect aConnected = WorldAmazon.AConnect.parseFrom(codedInputStream.readByteArray());
+        WorldAmazon.AConnected aConnected = WorldAmazon.AConnected.parseFrom(codedInputStream.readByteArray());
         return aConnected.toBuilder();
     }
 }

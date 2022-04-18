@@ -33,14 +33,20 @@ public class Command {
         } else {
             //If WorldID is Null, create New world, create number of Trucks
             //Generate Num of Truck
+            PostgreSQLJDBC postgreSQLJDBC = new PostgreSQLJDBC();
             for (int i = 0; i < numOfTruck; i++) {
                 WorldUps.UInitTruck.Builder uInitTruck = WorldUps.UInitTruck.newBuilder();
                 uInitTruck.setX(0).setY(0).setId(i + 1);
                 uInitTruck.build();
                 builder.addTrucks(uInitTruck);
-                //TODO: Generate SQL Table for Truck And Each Truck
+                //TODO: Update Truck status only if ack is received
+//                System.out.print("Create Truck ID = ");
+//                System.out.println(i+1);
+                postgreSQLJDBC.addTruck((long) (i+1),0,0,1,false);
             }
+            postgreSQLJDBC.close();
         }
+
         sendToWorld(builder.build());
     }
 
@@ -52,9 +58,20 @@ public class Command {
         sendToWorld(builder.build());
     }
 
-    public void sendUCommandUGoPickUp(Integer truckid){
-
+    public void sendUCommandUGoPickUp(Integer truckid, Integer whid, Long seqnum){
+        WorldUps.UGoPickup.Builder uGoPickUpBuilder = WorldUps.UGoPickup.newBuilder();
+        uGoPickUpBuilder.setSeqnum(seqnum);
+        uGoPickUpBuilder.setWhid(whid);
+        uGoPickUpBuilder.setTruckid(truckid);
+        uGoPickUpBuilder.build();
         WorldUps.UCommands.Builder builder  = WorldUps.UCommands.newBuilder();
+        builder.addPickups(uGoPickUpBuilder);
+        try {
+            sendToWorld(builder.build());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
     }
 
 }
