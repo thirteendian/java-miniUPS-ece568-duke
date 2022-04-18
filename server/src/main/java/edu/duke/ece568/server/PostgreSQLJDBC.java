@@ -68,7 +68,7 @@ public class PostgreSQLJDBC {
             "X BIGINT NOT NULL," +
             "Y BIGINT NOT NULL" +
             ");";
-    private final String CREATE_AUTHENTICATION_TABLE = "CREATE EXTENSION IF NOT EXISTS pgcrypto;" +
+    private final String CREATE_AUTHENTICATION_TABLE =
             "CREATE TABLE IF NOT EXISTS AUTHENTICATION(" +
             "USERNAME TEXT PRIMARY KEY, " +
             "PASSWORD TEXT NOT NULL" +
@@ -116,9 +116,7 @@ public class PostgreSQLJDBC {
             this.c = DriverManager.getConnection("jdbc:postgresql://localhost:5432/ece568", "ece568", "ece568");
             this.c.setAutoCommit(false);
             this.databaseMetaData = c.getMetaData();
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        } catch (SQLException e) {
+        } catch (ClassNotFoundException | SQLException e) {
             e.printStackTrace();
         }
     }
@@ -333,6 +331,32 @@ public class PostgreSQLJDBC {
         executeStatement(query);
     }
 
+    /**
+     * Delete Whole entry of table when key=id
+     * Note: COMMIT IS NEEDED AFTER THIS METHOD
+     * @param table The table
+     * @param key Primary Key
+     * @param id Primary Key value
+     */
+    private void deleteEntry(String table, String key, Long id){
+    String query = "DELETE FROM "+table+" WHERE "+key+" = "+id+";";
+    executeStatement(query);
+    }
+
+    /**
+     * Add Entry for resent usage
+     * NOte: COMMIT IS NEEDED AFTER THIS METHOD
+     * @param table the table
+     * @param key primary key
+     * @param seq primary key value(should be sequence number)
+     * @param entry entry name
+     * @param entryValue entry value
+     */
+    private void addResentEntry(String table, String key, Long seq, String entry, Long entryValue){
+        String query = "INSERT INTO "+ table + "(" +key+","+entry+") VALUES (" +seq+","+entryValue+");";
+        executeStatement(query);
+    }
+
     /******************************************************************************************************************
      * TRUCK METHOD
      ******************************************************************************************************************/
@@ -501,7 +525,7 @@ public class PostgreSQLJDBC {
      ******************************************************************************************************************/
     public void addAuthentication(String username, String password) {
         String query = "INSERT INTO " + _authentication + "(" + _username + ", " + _password + ") VALUES (" +
-                username + "," +
+                username + ", " +
                 password +
                 ");";
         executeStatement(query);
@@ -514,13 +538,134 @@ public class PostgreSQLJDBC {
 
     public void updateAuthentication(String username, String password){
             if(!isPrimaryKeyExist(_authentication,_username,username)) return;
-
         try {
             c.commit();
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
+    /******************************************************************************************************************
+     * UGOPICKUP METHOD
+     ******************************************************************************************************************/
+    public void addUGoPickup(Long seqnum, Long truckID){
+        addResentEntry(_uGoPickup,_wSeqNum,seqnum,_truckId,truckID);
+        try {
+            c.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public Long getUGOPickupTruckID(Long seqnum){
+        return getLongFromTable(_uGoPickup,_wSeqNum,seqnum,_truckId);
+    }
+
+    public void deleteUGoPickUp(Long seqnum){
+        deleteEntry(_uGoPickup,_wSeqNum,seqnum);
+        try {
+            c.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /******************************************************************************************************************
+     * QUERY METHOD
+     ******************************************************************************************************************/
+    public void addQuery(Long seqnum, Long truckID){
+        addResentEntry(_uQuery,_wSeqNum,seqnum,_truckId,truckID);
+        try {
+            c.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public Long getQueryTruckID(Long seqnum){
+        return getLongFromTable(_uQuery,_wSeqNum,seqnum,_truckId);
+    }
+
+    public void deleteQuery(Long seqnum){
+        deleteEntry(_uQuery,_wSeqNum,seqnum);
+        try {
+            c.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+    /******************************************************************************************************************
+     * USHIPMENTRESPONSE METHOD
+     ******************************************************************************************************************/
+    public void addUShipmentResponse(Long seqnum, Long packageID){
+        addResentEntry(_uShipmentResponse,_aSeqNum,seqnum,_packageId,packageID);
+        try {
+            c.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public Long getUShipmentResponsePackageID(Long seqnum){
+        return getLongFromTable(_uShipmentResponse,_aSeqNum,seqnum,_packageId);
+    }
+
+    public void deleteUShipmentResponse(Long seqnum){
+        deleteEntry(_uShipmentResponse,_aSeqNum,seqnum);
+        try {
+            c.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+    /******************************************************************************************************************
+     * USHIPPINGRESPONSE METHOD
+     ******************************************************************************************************************/
+    public void addUShippingResponse(Long seqnum, Long truckID){
+        addResentEntry(_uShippingResponse,_aSeqNum,seqnum,_truckId,truckID);
+        try {
+            c.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public Long getUShippingResponsePackageID(Long seqnum){
+        return getLongFromTable(_uShippingResponse,_aSeqNum,seqnum,_truckId);
+    }
+
+    public void deleteUShippingResponse(Long seqnum){
+        deleteEntry(_uShippingResponse,_aSeqNum,seqnum);
+        try {
+            c.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+    /******************************************************************************************************************
+     * USHIPPINGRESPONSE METHOD
+     ******************************************************************************************************************/
+    public void addUTruckArrivedNotification(Long seqnum, Long truckID){
+        addResentEntry(_uTruckArrivedNotification,_aSeqNum,seqnum,_truckId,truckID);
+        try {
+            c.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public Long getUTruckArrivedNotificationTruckID(Long seqnum){
+        return getLongFromTable(_uTruckArrivedNotification,_aSeqNum,seqnum,_truckId);
+    }
+
+    public void deleteUTruckArrivedNotification(Long seqnum){
+        deleteEntry(_uTruckArrivedNotification,_aSeqNum,seqnum);
+        try {
+            c.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
 
     public void close() {
         try {
