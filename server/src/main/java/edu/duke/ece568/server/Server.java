@@ -1,5 +1,14 @@
 package edu.duke.ece568.server;
 
+import edu.duke.ece568.server.Amazon.ASeqNumCounter;
+import edu.duke.ece568.server.Amazon.AmazonCommand;
+import edu.duke.ece568.server.Amazon.AmazonListenerRunnable;
+import edu.duke.ece568.server.Amazon.AmazonResponse;
+import edu.duke.ece568.server.World.TruckUpdateRunnable;
+import edu.duke.ece568.server.World.WorldCommand;
+import edu.duke.ece568.server.World.WorldListenerRunnable;
+import edu.duke.ece568.server.World.WorldResponse;
+
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -33,7 +42,33 @@ public class Server {
         //Establish Connection with Amazon
         this.serverToAmazonPortNum = serverToAmazonPortNum;
         this.serverToAmazonHost = serverToAmazonHost;
-//        this.serverToAmazonSocket = new Socket(this.serverToAmazonHost,this.serverToAmazonPortNum);
+        //this.serverToAmazonSocket = new Socket(this.serverToAmazonHost,this.serverToAmazonPortNum);
+        //Establish SequenceNumberCounter
+        ASeqNumCounter worldSeqNum = new ASeqNumCounter();
+        ASeqNumCounter amazonSeqNum = new ASeqNumCounter();
+        //Establish Command and Response
+        WorldCommand worldCommand = new WorldCommand(serverToWorldSocket);
+        WorldResponse worldResponse = new WorldResponse(serverToWorldSocket);
+        AmazonCommand amazonCommand = new AmazonCommand(serverToAmazonSocket);
+        AmazonResponse amazonResponse = new AmazonResponse(serverToAmazonSocket);
+
+        //WorldListenerThread
+        WorldListenerRunnable worldListenerRunnable = new WorldListenerRunnable(serverToWorldSocket,serverToAmazonSocket,worldResponse,worldCommand,amazonCommand);
+        Thread worldListener = new Thread(worldListenerRunnable);
+
+        //WorldResendThread
+
+        //AmazonListenerThread
+        AmazonListenerRunnable amazonListenerRunnable = new AmazonListenerRunnable(serverToWorldSocket,serverToAmazonSocket,amazonResponse,amazonCommand,worldCommand);
+        Thread amazonListener = new Thread(amazonListenerRunnable);
+
+        //AmazonResendThread
+        //TruckUpdateThread
+        TruckUpdateRunnable truckUpdateRunnable = new TruckUpdateRunnable(serverToWorldSocket,serverToAmazonSocket,amazonCommand,worldCommand,amazonResponse);
+        Thread truckUpdator = new Thread(truckUpdateRunnable);
+        worldListener.start();
+        amazonListener.start();
+        truckUpdator.start();
     }
 
     public Socket acceptConnection() throws IOException {
@@ -76,10 +111,6 @@ public class Server {
             postgreSQLJDBC.close();
             //Connect to World, Amazon, Establish Server to Client
             Server server = new Server(WORLD_HOST,WORLD_PORTNUM, CLIENT_PORTNUM, AMAZON_HOST, AMAZON_PORTNUM);
-            //World Amazon Thread
-            AmazonCommunicationRunnable amazonCommunicationRunnable = new AmazonCommunicationRunnable(server.getServerToWorldSocket());
-            Thread t = new Thread(amazonCommunicationRunnable);
-            t.start();
             //Client Thread
             while(true){
                 Socket clientSocket = server.acceptConnection();

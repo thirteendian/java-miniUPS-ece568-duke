@@ -1,22 +1,23 @@
-package edu.duke.ece568.server;
+package edu.duke.ece568.server.World;
 
 import com.google.protobuf.CodedOutputStream;
 import com.google.protobuf.Message;
+import edu.duke.ece568.server.PostgreSQLJDBC;
 import edu.duke.ece568.server.protocol.WorldUps;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Socket;
 
-public class Command {
+public class WorldCommand {
     private Socket serverToWorldSocket;
 
-    public Command(Socket serverToWorldSocket) {
+    public WorldCommand(Socket serverToWorldSocket) {
         this.serverToWorldSocket = serverToWorldSocket;
     }
 
 
-    private void sendToWorld(Message msg) throws IOException {
+    private synchronized void sendToWorld(Message msg) throws IOException {
         OutputStream outputStream = this.serverToWorldSocket.getOutputStream();
         CodedOutputStream codedOutputStream = CodedOutputStream.newInstance(outputStream);
         codedOutputStream.writeUInt32NoTag(msg.toByteArray().length);
@@ -72,6 +73,14 @@ public class Command {
             e.printStackTrace();
         }
 
+    }
+
+    public void sendUCommand(WorldUps.UCommands uCommands){
+        try {
+            sendToWorld(uCommands);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 }

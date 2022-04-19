@@ -1,4 +1,4 @@
-package edu.duke.ece568.server;
+package edu.duke.ece568.server.World;
 
 import com.google.protobuf.CodedInputStream;
 import edu.duke.ece568.server.protocol.WorldUps;
@@ -7,10 +7,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.Socket;
 
-public class Response {
+public class WorldResponse {
     private Socket serverToWorldSocket;
     private WorldUps.UConnected.Builder uConnected;
-    public Response(Socket serverToWorldSocket) {
+    public WorldResponse(Socket serverToWorldSocket) {
         this.serverToWorldSocket = serverToWorldSocket;
     }
 
@@ -22,7 +22,7 @@ public class Response {
         return uConnected.toBuilder();
     }
 
-    public WorldUps.UResponses.Builder recvFromWorld() throws IOException {
+    private WorldUps.UResponses.Builder recvFromWorld() throws IOException {
         InputStream inputStream = this.serverToWorldSocket.getInputStream();
         CodedInputStream codedInputStream = CodedInputStream.newInstance(inputStream);
         //int length = codedInputStream.readRawVarint32();
@@ -36,6 +36,10 @@ public class Response {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+    public WorldUps.UResponses.Builder recvUResponse() throws IOException {
+        WorldUps.UResponses.Builder uResponses = recvFromWorld();
+        return uResponses;
     }
 
     //UConnected
