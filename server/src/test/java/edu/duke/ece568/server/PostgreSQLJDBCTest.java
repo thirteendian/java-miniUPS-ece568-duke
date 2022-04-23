@@ -65,8 +65,8 @@ class PostgreSQLJDBCTest {
         postgreSQLJDBC.addWarehouse(2L,6L,7L);
         postgreSQLJDBC.addShipment(1L,5L,6L,2L,"vcm@duke.edu",new Status().pInWarehouse,100L);
         postgreSQLJDBC.addUShipmentStatusUpdate(5L,1L,2L);
-        assertEquals(postgreSQLJDBC.getUShipmentStatusUpdatePackageID(5L),1L);
-        assertEquals(postgreSQLJDBC.getUShipmentStatusUpdateTruckID(5L),2L);
+        ArrayList<Long> arrayList = postgreSQLJDBC.getAllUShipmentStatusUpdate();
+
         assertEquals(postgreSQLJDBC.getUShipmentStatusUpdateTableSize(),1);
         postgreSQLJDBC.deleteUShipmentStatusUpdate(5L);
         assertEquals(postgreSQLJDBC.getUShipmentStatusUpdateTableSize(),0);

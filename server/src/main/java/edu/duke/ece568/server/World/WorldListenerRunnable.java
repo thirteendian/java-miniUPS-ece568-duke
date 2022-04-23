@@ -46,37 +46,77 @@ public class WorldListenerRunnable implements Runnable {
                 WorldUps.UCommands.Builder uCommandsBuilder = WorldUps.UCommands.newBuilder();
                 //Send to Amazon builder
                 UpsAmazon.AUResponse.Builder auResponseBuilder = UpsAmazon.AUResponse.newBuilder();
+                PostgreSQLJDBC postgreSQLJDBC = new PostgreSQLJDBC();
 
-
-                /**********************************DELETE ALL RESEND***************************************************/
+                /**********************Receive Ack, Delete Resend***************************************************/
                 for (Long ack : builder.getAcksList()) {
-                    PostgreSQLJDBC postgreSQLJDBC = new PostgreSQLJDBC();
-                    //From ack(WSeqNum of UGoPickUp) get ASeqNum(corresponding AShippingRequest ACK)
+
+
+                    /**
+                     * AShippingRequest[1] <= UGoPickUp[2] => UShippingResponse[3]
+                     * If ACK is UGoPickUp
+                     * Delete UGoPickUp Resend
+                     * Send AShippingRequest ACK to Amazon
+                     * Send UShppingResponse to Amazon
+                     */
                     if(postgreSQLJDBC.isUGoPickupContainsWseq(ack)){
-                        //Send AShippingRequest ACK to Amazon
+                        //----------------------------Send AShippingRequest[1] ACK to Amazon---------------------------/
+                        //From ack(WSeqNum of UGoPickUp) get ASeqNum(corresponding AShippingRequest ACK)
                         Long AShippingRequestSeqNum = postgreSQLJDBC.getUGOPickupASeqNum(ack);
+                        //add Repeated AShippingRequestSeqNum to AUResponse
                         auResponseBuilder.addAcks(AShippingRequestSeqNum);
-                        //Send UShippingResponse to Amazon
+
+                        //----------------------------Send UShippingResponse to Amazon---------------------------------/
                         Long truckID = postgreSQLJDBC.getUGoDeliverTruckID(ack);
                         UpsAmazon.UShippingResponse.Builder uShippingResponseBuilder = UpsAmazon.UShippingResponse.newBuilder();
                         ArrayList<Long> packageIDArrayList = postgreSQLJDBC.getShipmentPackageIDWithTruckID(truckID);
-                            //add Repeated UTracking to UshippingResponse
+                        //add Repeated UTracking to UshippingResponse
                         for(Long packageID: packageIDArrayList){
                             UpsAmazon.UTracking.Builder uTrackingBuilder = UpsAmazon.UTracking.newBuilder().setPackageId(packageID).setTrackingNumber("123");
                             uShippingResponseBuilder.addUTracking(uTrackingBuilder.build());
                         }
+                        //create UShippingResponse
                         Long ASeqNum = ASeqNumCounter.getInstance().getCurrSeqNum();
                         uShippingResponseBuilder.setSeqnum(ASeqNum);
                         auResponseBuilder.addShippingResponse(uShippingResponseBuilder.build());
-                        //Add UShippingResponse to Resend Database
+                        //-----------------------------Add UShippingResponse to Resend Database------------------------/
                         postgreSQLJDBC.addUShippingResponse(ASeqNum,truckID);
-                        //Update Truck Status to Traveling
+                        //----------------------------Update Truck Status----------------------------------------------/
                         postgreSQLJDBC.updateTruckStatus(truckID,null,null ,new Status().tTraveling,false);
                     }
+                    /**
+                     * Delete All ACK Resend PostgreSQL
+                     */
                     postgreSQLJDBC.deleteUGoDeliver(ack);
                     postgreSQLJDBC.deleteUGoPickUp(ack);
+
                 }
 
+                /**********************************Update Truck Status***************************************************/
+                for(WorldUps.UTruck uTruck : builder.getTruckstatusList()){
+                    //-----------------------------Delete Resend Quary Table-------------------------------------------/
+                    postgreSQLJDBC.deleteQuery(uTruck.getSeqnum());
+                    //-----------------------------Change Truck Status-------------------------------------------/
+                    Integer truckStatus = new Status().getStatus(uTruck.getStatus());
+                    postgreSQLJDBC.updateTruckStatus((long) uTruck.getTruckid(),uTruck.getX(),uTruck.getY(),truckStatus,false);
+                }
+
+                UpsAmazon.UShipmentStatusUpdate.Builder shipmentStatusUpdate = UpsAmazon.UShipmentStatusUpdate.newBuilder();
+                Long auShipmentStatusUpdateSeqNum = ASeqNumCounter.getInstance().getCurrSeqNum();
+                /**********************************Receive One Package UDelivery Made **********************************/
+                for(WorldUps.UDeliveryMade uDeliveryMade: builder.getDeliveredList()){
+                    //-----------------------------Send ACK(Add ack to UCommands)--------------------------------------/
+                    uCommandsBuilder.addAcks(uDeliveryMade.getSeqnum());
+                    //-----------------------------Update Package Status to Delivered----------------------------------/
+                    postgreSQLJDBC.updateShipmentStatus(uDeliveryMade.getPackageid(),new Status().pDelivered);
+                    //-----------------------------Send UShipment Status Update----------------------------------------/
+                    UpsAmazon.AUShipmentUpdate auShipmentUpdate = UpsAmazon.AUShipmentUpdate.newBuilder().setPackageId(uDeliveryMade.getPackageid()).setStatus("delivered").build();
+                    shipmentStatusUpdate.addAuShipmentUpdate(auShipmentUpdate);
+                    //-----------------------------Put AUshipmentUpdate, ShipmentStatusUpdate to Resend List------------/
+                    postgreSQLJDBC.addAUShipmentStatusUpdate(uDeliveryMade.getPackageid(),new Status().pDelivered,auShipmentStatusUpdateSeqNum);
+                }
+                shipmentStatusUpdate.setSeqnum(auShipmentStatusUpdateSeqNum).build();
+                auResponseBuilder.addShipmentStatusUpdate(shipmentStatusUpdate);
 
                 //UGoPickUp seq ==> AShippingRequest seq
                 /*********COMPLETE UGOPICKUP OR COMPLETE DELIVERING ALL PACKAGES***************************************/
@@ -84,7 +124,6 @@ public class WorldListenerRunnable implements Runnable {
                     //Send ACK to World
                     uCommandsBuilder.addAcks(finished.getSeqnum());
                     //Update Truck
-                    PostgreSQLJDBC postgreSQLJDBC = new PostgreSQLJDBC();
                     Long aSeqNum = ASeqNumCounter.getInstance().getCurrSeqNum();
                     //if Complete UGoPickUp, last status traveling, curr status arrive warehouse
                     Integer status = postgreSQLJDBC.getTruckStatus((long) finished.getTruckid());
@@ -104,7 +143,6 @@ public class WorldListenerRunnable implements Runnable {
 
                 }
 
-                PostgreSQLJDBC postgreSQLJDBC = new PostgreSQLJDBC();
                 amazonCommand.sendAUResponse(auResponseBuilder.build());
                 worldCommand.sendUCommand(uCommandsBuilder.build());
                 postgreSQLJDBC.close();

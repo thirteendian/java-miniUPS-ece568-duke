@@ -13,11 +13,11 @@ public class Status {
     public final Integer pDelivering = 8;
     public final Integer pDelivered = 9;
     public Integer getStatus(String status){
-        if(status == "idle") return tIdel;
-        else if(status == "traveling") return tTraveling;
-        else if(status == "arrive warehouse") return tArriveWarehouse;
-        else if(status == "loading") return tLoading;
-        else if(status == "delivering")return  tDelivering;
+        if(status.equals("idle")) return tIdel;
+        else if(status.equals("traveling")) return tTraveling;
+        else if(status.equals("arrive warehouse")) return tArriveWarehouse;
+        else if(status.equals("loading")) return tLoading;
+        else if(status.equals("delivering"))return  tDelivering;
         else return -1;
     }
 }
