@@ -1,13 +1,7 @@
 package edu.duke.ece568.server;
 
-import edu.duke.ece568.server.Amazon.ASeqNumCounter;
-import edu.duke.ece568.server.Amazon.AmazonCommand;
-import edu.duke.ece568.server.Amazon.AmazonListenerRunnable;
-import edu.duke.ece568.server.Amazon.AmazonResponse;
-import edu.duke.ece568.server.World.TruckUpdateRunnable;
-import edu.duke.ece568.server.World.WorldCommand;
-import edu.duke.ece568.server.World.WorldListenerRunnable;
-import edu.duke.ece568.server.World.WorldResponse;
+import edu.duke.ece568.server.Amazon.*;
+import edu.duke.ece568.server.World.*;
 
 import java.io.*;
 import java.net.ServerSocket;
@@ -29,9 +23,18 @@ public class Server {
     private final String serverToAmazonHost;
     private final int serverToAmazonPortNum;
 
-
+    //Command
+    private WorldCommand worldCommand;
+    private WorldResponse worldResponse;
+    private AmazonCommand amazonCommand;
+    private AmazonResponse amazonResponse;
     //private HashMap<String, Socket> clientSocketHashMap;
     public Server(String serverToWorldHost, int serverToWorldPortNum, int serverToClientPortNum, String serverToAmazonHost, int serverToAmazonPortNum) throws IOException {
+        //Construct Server DATABASE
+        PostgreSQLJDBC postgreSQLJDBC = new PostgreSQLJDBC();
+        postgreSQLJDBC.dropAllTable();
+        postgreSQLJDBC.createAllTable();
+        postgreSQLJDBC.close();
         //Establish Connection with World
         this.serverToWorldHost = serverToWorldHost;
         this.serverToWorldPortNum = serverToWorldPortNum;
@@ -42,58 +45,56 @@ public class Server {
         //Establish Connection with Amazon
         this.serverToAmazonPortNum = serverToAmazonPortNum;
         this.serverToAmazonHost = serverToAmazonHost;
-        //this.serverToAmazonSocket = new Socket(this.serverToAmazonHost,this.serverToAmazonPortNum);
-        //Establish SequenceNumberCounter
-        ASeqNumCounter worldSeqNum = new ASeqNumCounter();
-        ASeqNumCounter amazonSeqNum = new ASeqNumCounter();
-        //Establish Command and Response
-        WorldCommand worldCommand = new WorldCommand(serverToWorldSocket);
-        WorldResponse worldResponse = new WorldResponse(serverToWorldSocket);
-        AmazonCommand amazonCommand = new AmazonCommand(serverToAmazonSocket);
-        AmazonResponse amazonResponse = new AmazonResponse(serverToAmazonSocket);
-
-        //WorldListenerThread
-        WorldListenerRunnable worldListenerRunnable = new WorldListenerRunnable(serverToWorldSocket,serverToAmazonSocket,worldResponse,worldCommand,amazonCommand);
-        Thread worldListener = new Thread(worldListenerRunnable);
-
-        //WorldResendThread
-
-        //AmazonListenerThread
-        AmazonListenerRunnable amazonListenerRunnable = new AmazonListenerRunnable(serverToWorldSocket,serverToAmazonSocket,amazonResponse,amazonCommand,worldCommand);
-        Thread amazonListener = new Thread(amazonListenerRunnable);
-
-        //AmazonResendThread
-        //TruckUpdateThread
-        TruckUpdateRunnable truckUpdateRunnable = new TruckUpdateRunnable(serverToWorldSocket,serverToAmazonSocket,amazonCommand,worldCommand,amazonResponse);
-        Thread truckUpdator = new Thread(truckUpdateRunnable);
-        worldListener.start();
-        amazonListener.start();
-        truckUpdator.start();
     }
 
     public Socket acceptConnection() throws IOException {
         Socket clientSocket = this.serverSocket.accept();
         return clientSocket;
     }
+    public void connectToAmazon() throws IOException {
+        this.serverToAmazonSocket = new Socket(this.serverToAmazonHost,this.serverToAmazonPortNum);
+        this.worldCommand = new WorldCommand(serverToWorldSocket);
+        this.worldResponse = new WorldResponse(serverToWorldSocket);
+        this.amazonCommand = new AmazonCommand(serverToAmazonSocket);
+        this.amazonResponse = new AmazonResponse(serverToAmazonSocket);
+    }
+    public void startWorldListenerThread(Boolean debugMode){
+        //WorldListenerThread
+        WorldListenerRunnable worldListenerRunnable = new WorldListenerRunnable(serverToWorldSocket,serverToAmazonSocket,worldResponse,worldCommand,amazonCommand,debugMode);
+        Thread worldListener = new Thread(worldListenerRunnable);
+        worldListener.start();
+    }
+    public void startWorldResendThread(){
+        //WorldResendThread
+        WorldResendRunnable worldResendRunnable = new WorldResendRunnable(serverToWorldSocket,worldCommand);
+        Thread worldResend = new Thread(worldResendRunnable);
+        worldResend.start();
+    }
+    public void startTruckUpdateThread(){
+        //TruckUpdateThread
+        TruckUpdateRunnable truckUpdateRunnable = new TruckUpdateRunnable(serverToWorldSocket,serverToAmazonSocket,amazonCommand,worldCommand,amazonResponse);
+        Thread truckUpdator = new Thread(truckUpdateRunnable);
+        truckUpdator.start();
+    }
+    public void startAmazonListenerThread(){
+        //AmazonListenerThread
+        AmazonListenerRunnable amazonListenerRunnable = new AmazonListenerRunnable(serverToWorldSocket,serverToAmazonSocket,amazonResponse,amazonCommand,worldCommand);
+        Thread amazonListener = new Thread(amazonListenerRunnable);
+        amazonListener.start();
+    }
+    public void startAmazonResendThread(){
+        //AmazonResendThread
+        AmazonResendRunnable amazonResendRunnable = new AmazonResendRunnable(serverToAmazonSocket,amazonCommand);
+        Thread amazonResend = new Thread(amazonResendRunnable);
+        amazonResend.start();
+    }
+
 
     public Socket getServerToWorldSocket() {
         return serverToWorldSocket;
     }
-
-    public String getServerToWorldHost() {
-        return serverToWorldHost;
-    }
-
-    public Integer getServerToWorldPortNum() {
-        return serverToWorldPortNum;
-    }
-
-    public int getServerToClientPortNum() {
-        return serverToClientPortNum;
-    }
-
-    public ServerSocket getServerSocket() {
-        return serverSocket;
+    public Socket getServerToAmazonSocket(){
+        return serverToAmazonSocket;
     }
 
     public static void main(String[] args) {
@@ -104,13 +105,14 @@ public class Server {
         final Integer AMAZON_PORTNUM = 4444;
 
         try {
-            //Establish SQL
-            PostgreSQLJDBC postgreSQLJDBC = new PostgreSQLJDBC();
-            postgreSQLJDBC.dropAllTable();
-            postgreSQLJDBC.createAllTable();
-            postgreSQLJDBC.close();
             //Connect to World, Amazon, Establish Server to Client
             Server server = new Server(WORLD_HOST,WORLD_PORTNUM, CLIENT_PORTNUM, AMAZON_HOST, AMAZON_PORTNUM);
+            server.connectToAmazon();
+            server.startWorldListenerThread(false);
+            server.startWorldResendThread();
+            server.startAmazonListenerThread();
+            server.startAmazonResendThread();
+            server.startTruckUpdateThread();
             //Client Thread
             while(true){
                 Socket clientSocket = server.acceptConnection();

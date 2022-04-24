@@ -9,14 +9,14 @@ import java.io.OutputStream;
 import java.net.Socket;
 
 public class AmazonCommand {
-    Socket serverToAmazonCommand;
+    Socket serverToAmazonSocket;
 
-    public AmazonCommand(Socket serverToAmazonCommand) {
-        this.serverToAmazonCommand = serverToAmazonCommand;
+    public AmazonCommand(Socket serverToAmazonSocket) {
+        this.serverToAmazonSocket = serverToAmazonSocket;
     }
 
     private synchronized void sendToAmazon(Message msg) throws IOException {
-        OutputStream outputStream = this.serverToAmazonCommand.getOutputStream();
+        OutputStream outputStream = this.serverToAmazonSocket.getOutputStream();
         CodedOutputStream codedOutputStream = CodedOutputStream.newInstance(outputStream);
         codedOutputStream.writeUInt32NoTag(msg.toByteArray().length);
         msg.writeTo(codedOutputStream);

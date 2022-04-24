@@ -7,6 +7,7 @@ import edu.duke.ece568.shared.Status;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.util.UUID;
 
 public class AmazonListenerRunnable implements Runnable{
     Socket serverToWorldSocket;
@@ -25,31 +26,54 @@ public class AmazonListenerRunnable implements Runnable{
     @Override
     public void run() {
         while(true){
+            System.out.println("AmazonListenerRunnable start !");
             try {
                 UpsAmazon.AURequest.Builder builder = amazonResponse.recvFromAmazon();
+                UpsAmazon.AUResponse.Builder auResponseBuilder = UpsAmazon.AUResponse.newBuilder();
+                PostgreSQLJDBC postgreSQLJDBC = new PostgreSQLJDBC();
+
                 /**********************************DELETE ALL RESEND THAT ACKED****************************************/
                 for (Long ack : builder.getAcksList()) {
-                    PostgreSQLJDBC postgreSQLJDBC = new PostgreSQLJDBC();
                     postgreSQLJDBC.deleteUShippingResponse(ack);
                     postgreSQLJDBC.deleteUShipmentStatusUpdate(ack);
                     postgreSQLJDBC.deleteUTruckArrivedNotification(ack);
-                    postgreSQLJDBC.close();
+                    System.out.println("[Delete Amazon Resend]: ack: "+ ack);
                 }
+
                 /********************************RECEIVE ASHIPPING REQUEST*********************************************/
                 for(UpsAmazon.AShippingRequest aShippingRequest: builder.getShippingRequestList()){
-                    PostgreSQLJDBC postgreSQLJDBC = new PostgreSQLJDBC();
+                    //AShippingRequest ACK
+                    auResponseBuilder.addAcks(aShippingRequest.getSeqnum());
                     //Add ShippingRequest
-                    Long shippingID = AShippingNumCounter.getInstance().getCurrSeqNum();
+                    Long shippingID = AShippingNumCounter.getInstance().getCurrSeqNum();//ASC
                     postgreSQLJDBC.addShippingRequest(shippingID,aShippingRequest.getSeqnum());
                     //Add All Shipment Table
                     for(UpsAmazon.AShipment aShipment: aShippingRequest.getShipmentList()){
-                        //Generate Warehouse Table
+                        //Add Warehouse Table
                         postgreSQLJDBC.addWarehouse((long) aShippingRequest.getLocation().getWarehouseid(),aShippingRequest.getLocation().getX(),aShippingRequest.getLocation().getY());
-                        //Generate AShipment Table
-                        postgreSQLJDBC.addShipment(aShipment.getPackageId(),aShipment.getDestX(),aShipment.getDestY(), (long) aShippingRequest.getLocation().getWarehouseid(),aShipment.getEmailaddress(),new Status().pInWarehouse,shippingID);
+                        //Add AShipment Table
+                        UUID uuid = UUID.randomUUID();
+                        postgreSQLJDBC.addShipment(aShipment.getPackageId(),aShipment.getDestX(),aShipment.getDestY(), (long) aShippingRequest.getLocation().getWarehouseid(),aShipment.getEmailaddress(),new Status().pInWarehouse,shippingID,uuid.toString());
+                        System.out.println("[ALR]      [AShippingRequest]: warehouse{ id: " + aShippingRequest.getLocation().getWarehouseid()+ "x: " + aShippingRequest.getLocation().getX() + "y: "+ aShippingRequest.getLocation().getY()+"}"
+                                            +" Ashipment{packageID: "+ aShipment.getPackageId() + "DestX: "+aShipment.getDestX() +"DestY: "+aShipment.getDestY() +"ShippingID: "+ shippingID+ " TrackingNum: "+uuid.toString()+"}");
+                        //Add Package Table
+                        for(UpsAmazon.Product product: aShipment.getProductList()){
+                            postgreSQLJDBC.addProduct(aShipment.getPackageId(),product.getDescription(), (long) product.getCount());
+                            System.out.println("    [Product]: description: "+ product.getDescription() +" count: "+ product.getCount());
+                        }
                     }
-                    postgreSQLJDBC.close();
                 }
+                /********************************RECEIVE ATruckLoadedNotification**************************************/
+                for(UpsAmazon.ATruckLoadedNotification aTruckLoadedNotification: builder.getLoadedList()){
+                    auResponseBuilder.addAcks(aTruckLoadedNotification.getSeqnum());
+                    Integer truckStatus = new Status().tLoaded;
+                    postgreSQLJDBC.updateTruckStatus(aTruckLoadedNotification.getTruckId(),null,null, truckStatus,null,null);
+                    System.out.println("[ALR]     [ATruckLoadedNotification] ack: "+ aTruckLoadedNotification.getSeqnum() +" truckID: "+ aTruckLoadedNotification.getTruckId() + " truckStatus: " + postgreSQLJDBC.getTruckStatus(aTruckLoadedNotification.getTruckId()));
+                }
+
+                /********************************RECEIVE ATruckLoadedNotification**************************************/
+                amazonCommand.sendAUResponse(auResponseBuilder.build());
+                postgreSQLJDBC.close();
             } catch (IOException e) {
                 e.printStackTrace();
             }

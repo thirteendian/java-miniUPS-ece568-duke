@@ -43,7 +43,7 @@ public class WorldCommand {
                 //TODO: Update Truck status only if ack is received
 //                System.out.print("Create Truck ID = ");
 //                System.out.println(i+1);
-                postgreSQLJDBC.addTruck((long) (i+1),0,0,1,false);
+                postgreSQLJDBC.addTruck((long) (i+1),0,0,1,false,false);
             }
             postgreSQLJDBC.close();
         }

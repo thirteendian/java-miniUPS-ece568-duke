@@ -11,6 +11,7 @@ public class PostgreSQLJDBC {
     private final String _y = "Y";
     private final String _status = "STATUS";
     private final String _isSentUtruckArrived = "IS_SENTUTRUCKARRIVED";
+    private final String _isSentUGoDeliver = "IS_SENTUGODELIVER";
     private final String _shipment = "SHIPMENT";
     private final String _warehouse = "WAREHOUSE";
     private final String _authentication = "AUTHENTICATION";
@@ -30,6 +31,11 @@ public class PostgreSQLJDBC {
     private final String _shippingRequest = "SHIPPINGREQUEST";
     private final String _shippingId = "SHIPPINGID";
     private final String _aushipmentupdate = "AUSHIPMENTUPDATE";
+    private final String _product = "PRODUCT";
+    private final String _productId = "PRODUCT_ID";
+    private final String _description = "DESCRIPTION";
+    private final String _count = "COUNT";
+    private final String _trackingNum = "TRACKING_NUM";
     /*
     HOW TO USE POSTGRESQL
     1. CONNECT TO DATABASE USER
@@ -47,7 +53,8 @@ public class PostgreSQLJDBC {
             "X INT NOT NULL, " +
             "Y INT NOT NULL, " +
             "STATUS INT NOT NULL CHECK (STATUS < 7 AND STATUS > 0), " +
-            "IS_SENTUTRUCKARRIVED BOOLEAN NOT NULL" +
+            "IS_SENTUTRUCKARRIVED BOOLEAN NOT NULL," +
+            "IS_SENTUGODELIVER BOOLEAN NOT NULL" +
             ");";
 
     //package_id(long), dest_x(int), dest_y(int), truck_id(long), warehouse_id(long), account_id(int), status(int)
@@ -63,6 +70,7 @@ public class PostgreSQLJDBC {
             "EMAIL_ADDRESS TEXT NOT NULL, " +
             "STATUS INT NOT NULL CHECK (STATUS>6 AND STATUS < 10), " +
             "SHIPPINGID BIGINT NOT NULL CHECK (SHIPPINGID >= 0)," +
+            "TRACKING_NUM TEXT NOT NULL," +
             "FOREIGN KEY (WAREHOUSE_ID) REFERENCES WAREHOUSE(WAREHOUSE_ID) ON DELETE SET NULL" +
             ");";
 
@@ -81,7 +89,8 @@ public class PostgreSQLJDBC {
     private final String CREATE_UGOPICKUP_TABLE = "CREATE TABLE IF NOT EXISTS UGOPICKUP(" +
             "W_SEQNUM BIGINT PRIMARY KEY CHECK(W_SEQNUM >=0)," +
             "TRUCK_ID BIGINT NOT NULL," +
-            "A_SEQNUM BIGINT NOT NULL" +
+            "A_SEQNUM BIGINT NOT NULL," +
+            "WAREHOUSE_ID BIGINT NOT NULL" +
             ");";
     private final String CREATE_QUERY_TABLE = "CREATE TABLE IF NOT EXISTS UQUERY(" +
             "W_SEQNUM BIGINT PRIMARY KEY CHECK(W_SEQNUM >=0)," +
@@ -89,8 +98,7 @@ public class PostgreSQLJDBC {
             ");";
     private final String CREATE_UGODELIVER_TABLE = "CREATE TABLE IF NOT EXISTS UGODELIVER(" +
             "W_SEQNUM BIGINT PRIMARY KEY CHECK(W_SEQNUM >=0)," +
-            "TRUCK_ID BIGINT NOT NULL," +
-            "PACKAGE_ID BIGINT NOT NULL" +
+            "TRUCK_ID BIGINT NOT NULL" +
             ");";
     //SELF USE TABLE TO AMAZON RESEND
     private final String CREATE_USHIPMENTSTATUSUPDATE_TABLE = "CREATE TABLE IF NOT EXISTS USHIPMENTSTATUSUPDATE(" +
@@ -114,6 +122,12 @@ public class PostgreSQLJDBC {
             "STATUS INT NOT NULL , " +
             "A_SEQNUM BIGINT NOT NULL "+
             ");";
+    private final String CREATE_PRODUCT  = "CREATE TABLE IF NOT EXISTS PRODUCT(" +
+            "PRODUCT_ID BIGSERIAL PRIMARY KEY," +
+            "PACKAGE_ID BIGINT NOT NULL," +
+            "DESCRIPTION TEXT NOT NULL," +
+            "COUNT BIGINT NOT NULL" +
+            ");";
 
     //DROP ALL TABLE
     private final String DROP_ALL_TABLE = "DROP TABLE IF EXISTS TRUCK CASCADE; " +
@@ -127,7 +141,8 @@ public class PostgreSQLJDBC {
             "DROP TABLE IF EXISTS USHIPPINGRESPONSE; " +
             "DROP TABLE IF EXISTS UTRUCKARRIVEDNOTIFICATION; " +
             "DROP TABLE IF EXISTS SHIPPINGREQUEST;" +
-            "DROP TABLE IF EXISTS AUSHIPMENTUPDATE";
+            "DROP TABLE IF EXISTS AUSHIPMENTUPDATE;" +
+            "DROP TABLE IF EXISTS PRODUCT;";
     private Connection c;
     private DatabaseMetaData databaseMetaData;
 
@@ -172,6 +187,7 @@ public class PostgreSQLJDBC {
         executeStatement(this.CREATE_UTRUCKARRIVEDNOTIFICATION);
         executeStatement(this.CREATE_SHIPPING_REQUEST_TABLE);
         executeStatement(this.CREATE_AUSHIPMENTUPDATE);
+        executeStatement(this.CREATE_PRODUCT);
         try {
             this.c.commit();
         } catch (SQLException e) {
@@ -210,7 +226,7 @@ public class PostgreSQLJDBC {
             statement = this.c.createStatement();
             ResultSet resultSet = statement.executeQuery(query);
             if (resultSet.next() == false) {
-                System.out.println(key + ": " + id + "does not exist!");
+//                System.out.println(key + ": " + id + "does not exist!");
                 resultSet.close();
                 statement.close();
                 return false;
@@ -228,7 +244,7 @@ public class PostgreSQLJDBC {
             statement = this.c.createStatement();
             ResultSet resultSet = statement.executeQuery(query);
             if (resultSet.next() == false) {
-                System.out.println(key + ": " + id + "does not exist!");
+//                System.out.println(key + ": " + id + "does not exist!");
                 resultSet.close();
                 statement.close();
                 return false;
@@ -256,6 +272,35 @@ public class PostgreSQLJDBC {
             ResultSet resultSet = statement.executeQuery(query);
             if (resultSet.next()) {
                 ans = resultSet.getLong(entry);
+            } else {
+                System.out.println(key + ": id " + entry + " does not exist!");
+            }
+            resultSet.close();
+            statement.close();
+            return ans;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return ans;
+    }
+
+    /**
+     * Get Boolean Entry Value From Table Key = ID Item
+     *
+     * @param table The SQL Table
+     * @param key   The entry key
+     * @param id    The key value
+     * @param entry the data entry name
+     * @return -1 if wrong
+     */
+    private Boolean getBooleanFromTable(String table, String key, Long id, String entry) {
+        String query = "SELECT " + entry + " FROM " + table + " WHERE " + key + " = " + id + ";";
+        Boolean ans = false;
+        try {
+            Statement statement = c.createStatement();
+            ResultSet resultSet = statement.executeQuery(query);
+            if (resultSet.next()) {
+                ans = resultSet.getBoolean(entry);
             } else {
                 System.out.println(key + ": id " + entry + " does not exist!");
             }
@@ -430,13 +475,14 @@ public class PostgreSQLJDBC {
      * TRUCK METHOD
      ******************************************************************************************************************/
 
-    public void addTruck(Long truckID, Integer truckX, Integer truckY, Integer status, Boolean isSentUTruckArrived) {
-        String query = "INSERT INTO " + _truck + "(" + _truckId + ", " + _x + ", " + _y + ", " + _status + ", " + _isSentUtruckArrived + ") VALUES (" +
+    public void addTruck(Long truckID, Integer truckX, Integer truckY, Integer status, Boolean isSentUTruckArrived, Boolean isSentUGoDeliver) {
+        String query = "INSERT INTO " + _truck + "(" + _truckId + ", " + _x + ", " + _y + ", " + _status + ", " + _isSentUtruckArrived + ", "+ _isSentUGoDeliver+") VALUES (" +
                 truckID + "," +
                 truckX + "," +
                 truckY + "," +
                 status + "," +
-                isSentUTruckArrived +
+                isSentUTruckArrived +","+
+                isSentUGoDeliver+
                 ");";
         executeStatement(query);
         try {
@@ -446,7 +492,7 @@ public class PostgreSQLJDBC {
         }
     }
 
-    public void updateTruckStatus(Long truckID, Integer setTruckX, Integer setTruckY, Integer setStatus, Boolean setIsSentUTruckArrived) {
+    public void updateTruckStatus(Long truckID, Integer setTruckX, Integer setTruckY, Integer setStatus, Boolean setIsSentUTruckArrived, Boolean setIsSentUGoDeliver) {
         if (!isPrimaryKeyExist(_truck, _truckId, truckID)) return;
         String query;
         if (setTruckX != null && setTruckY != null) {
@@ -459,6 +505,10 @@ public class PostgreSQLJDBC {
         if (setIsSentUTruckArrived != null) {
             updateEntry(_truck, _truckId, truckID, _isSentUtruckArrived, setIsSentUTruckArrived);
         }
+        if (setIsSentUGoDeliver != null){
+            updateEntry(_truck,_truckId,truckID, _isSentUGoDeliver, setIsSentUGoDeliver);
+        }
+
         try {
             this.c.commit();
         } catch (SQLException e) {
@@ -478,6 +528,13 @@ public class PostgreSQLJDBC {
         return getIntFromTable(_truck, _truckId, truckID, _status);
     }
 
+    public Boolean getTruckIsSentUTruckArrived(Long truckID){
+        return getBooleanFromTable(_truck,_truckId,truckID,_isSentUtruckArrived);
+    }
+    public Boolean getTruckIsSentUGoDeliver(Long truckID){
+        return getBooleanFromTable(_truck,_truckId,truckID,_isSentUGoDeliver);
+    }
+
     public ArrayList<Long> getTruckGroupOfStatus(Integer status) {
         String query = "SELECT * FROM " + _truck + " WHERE " + _status + "=" + status + ";";
         ArrayList<Long> idArrayList = new ArrayList<>();
@@ -495,13 +552,29 @@ public class PostgreSQLJDBC {
         return idArrayList;
     }
 
+    public ArrayList<Long> getAllTruckID(){
+        String query = "SELECT * FROM " + _truck + ";";
+        ArrayList<Long> idArrayList = new ArrayList<>();
+        try {
+            Statement stmt = c.createStatement();
+            ResultSet resultSet = stmt.executeQuery(query);
+            while (resultSet.next()) {
+                idArrayList.add(resultSet.getLong(_truckId));
+            }
+            resultSet.close();
+            stmt.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return idArrayList;
+    }
     /******************************************************************************************************************
      * SHIPMENT METHOD
      ******************************************************************************************************************/
 
-    public void addShipment(Long packageID, Long X, Long Y, Long warehouseID, String emailAddress, Integer status, Long shippingID) {
+    public void addShipment(Long packageID, Long X, Long Y, Long warehouseID, String emailAddress, Integer status, Long shippingID, String trackingNum) {
         String query = "INSERT INTO " + _shipment + "(" + _packageId + ", " + _x + ", " + _y + ", " + _truckId + ", " +
-                _warehouseId + "," + _emailAddress + "," + _status + "," + _shippingId + ") VALUES (" +
+                _warehouseId + "," + _emailAddress + "," + _status + "," + _shippingId +"," +_trackingNum+") VALUES (" +
                 packageID + "," +
                 X + "," +
                 Y + "," +
@@ -509,8 +582,9 @@ public class PostgreSQLJDBC {
                 warehouseID + ", \'" +
                 emailAddress + "\' ," +
                 status + "," +
-                shippingID +
-                ");";
+                shippingID +", \'" +
+                trackingNum+
+                "\' );";
         executeStatement(query);
         try {
             c.commit();
@@ -543,7 +617,6 @@ public class PostgreSQLJDBC {
 
     /**
      * Used for TruckStatusThread Dispatch Truck to the same Shipment Warehouse location
-     *
      * @param shippingID shippingID related to One Shipping Request
      * @return ArrayList of All PackageID that has the same ShippingID
      */
@@ -605,6 +678,10 @@ public class PostgreSQLJDBC {
 
     public Integer getShipmentStatus(Long packageID) {
         return getIntFromTable(_shipment, _packageId, packageID, _status);
+    }
+
+    public String getShipmentTrackingNum(Long packageID){
+        return getStringFromTable(_shipment,_packageId, packageID, _trackingNum);
     }
 
     public Integer getShipmentTableSize() {
@@ -693,8 +770,10 @@ public class PostgreSQLJDBC {
     /******************************************************************************************************************
      * UGOPICKUP METHOD
      ******************************************************************************************************************/
-    public void addUGoPickup(Long seqnum, Long truckID, Long AseqNum) {
-        String query = "INSERT INTO " + _uGoPickup + " ( " + _wSeqNum + "," + _truckId + "," + _aSeqNum + " ) VALUES ( " + seqnum + "," + truckID + "," + AseqNum + " );";
+
+    public void addUGoPickup(Long seqnum, Long truckID, Long AseqNum, Long wareHouseID) {
+        String query = "INSERT INTO " + _uGoPickup + " ( " + _wSeqNum + "," + _truckId + "," + _aSeqNum + ","+ _warehouseId+
+                " ) VALUES ( " + seqnum + "," + truckID + "," + AseqNum + ","+ wareHouseID+" );";
         executeStatement(query);
         try {
             c.commit();
@@ -703,6 +782,9 @@ public class PostgreSQLJDBC {
         }
     }
 
+    public Long getUGoPickupWareHouseID(Long seqnum){
+        return getLongFromTable(_uGoPickup,_wSeqNum,seqnum,_warehouseId);
+    }
     public Long getUGOPickupTruckID(Long seqnum) {
         return getLongFromTable(_uGoPickup, _wSeqNum, seqnum, _truckId);
     }
@@ -727,6 +809,21 @@ public class PostgreSQLJDBC {
                 e.printStackTrace();
             }
         }
+    }
+
+    public ArrayList<Long> getUGoPickUpWSeqNums(){
+        ArrayList<Long> wSeqnums = new ArrayList<>();
+        String query = "SELECT * FROM "+ _uGoPickup+";";
+        try {
+            Statement statement = c.createStatement();
+            ResultSet resultSet = statement.executeQuery(query);
+            while(resultSet.next()){
+                wSeqnums.add(resultSet.getLong(_wSeqNum));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return wSeqnums;
     }
 
     public Integer getUGoPickupTableSize() {
@@ -760,6 +857,7 @@ public class PostgreSQLJDBC {
         }
     }
 
+
     public Integer getQueryTableSize() {
         return getTableSize(_uQuery);
     }
@@ -767,11 +865,10 @@ public class PostgreSQLJDBC {
     /******************************************************************************************************************
      * UGoDELIVERY METHOD
      ******************************************************************************************************************/
-    public void addUGoDeliver(Long seqnum, Long packageID, Long truckID) {
-        String query = "INSERT INTO " + _uGoDeliver + "(" + _wSeqNum + "," + _truckId + ", " + _packageId + ") VALUES (" +
+    public void addUGoDeliver(Long seqnum, Long truckID) {
+        String query = "INSERT INTO " + _uGoDeliver + "(" + _wSeqNum + "," + _truckId + ") VALUES (" +
                 seqnum + "," +
-                truckID + ", " +
-                packageID +
+                truckID +
                 ");";
         executeStatement(query);
         try {
@@ -781,12 +878,30 @@ public class PostgreSQLJDBC {
         }
     }
 
-    public Long getUGoDeliverPackageID(Long seqnum) {
-        return getLongFromTable(_uGoDeliver, _wSeqNum, seqnum, _packageId);
+    public ArrayList<Long> getUGoDeliverWSeqNums(){
+        ArrayList<Long> wSeqnums = new ArrayList<>();
+        String query = "SELECT * FROM "+ _uGoDeliver+";";
+        try {
+            Statement statement = c.createStatement();
+            ResultSet resultSet = statement.executeQuery(query);
+            while(resultSet.next()){
+                wSeqnums.add(resultSet.getLong(_wSeqNum));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return wSeqnums;
     }
 
     public Long getUGoDeliverTruckID(Long seqnum) {
         return getLongFromTable(_uGoDeliver, _wSeqNum, seqnum, _truckId);
+    }
+
+    public Boolean isUGoDeliverContainsWseq(Long wSeqNum) {
+        if (isPrimaryKeyExist(_uGoDeliver, _wSeqNum, wSeqNum)) {
+            return true;
+        }
+        return false;
     }
 
     public void deleteUGoDeliver(Long seqnum) {
@@ -805,7 +920,7 @@ public class PostgreSQLJDBC {
     }
 
     /******************************************************************************************************************
-     * SHIPMENTSTATUSUPDATE METHOD
+     * UShipmentStatusUpdate METHOD
      ******************************************************************************************************************/
     public void addUShipmentStatusUpdate(Long seqnum, Long packageID, Long truckID) {
         String query = "INSERT INTO " + _uShipmentStatusUpdate + "(" + _aSeqNum + ") VALUES (" +
@@ -820,7 +935,7 @@ public class PostgreSQLJDBC {
     }
 
     public ArrayList<Long> getAllUShipmentStatusUpdate() {
-        String query = "SELECT * FROM " + _aushipmentupdate + ";";
+        String query = "SELECT * FROM " + _uShipmentStatusUpdate + ";";
         ArrayList<Long> result = new ArrayList<>();
         try {
             Statement statement = this.c.createStatement();
@@ -852,9 +967,9 @@ public class PostgreSQLJDBC {
     }
 
     /******************************************************************************************************************
-     * SHIPMENTSTATUSUPDATE METHOD
+     * AUShipmentStatuisUpdate METHOD
      ******************************************************************************************************************/
-    public void addAUShipmentStatusUpdate(Long packageID, Integer status, Long auShipmentStatusUpdateSeqNum) {
+    public void addAUShipmentUpdate(Long packageID, Integer status, Long auShipmentStatusUpdateSeqNum) {
         String query = "INSERT INTO " + _aushipmentupdate + "(" + _packageId+","+_status +","+_aSeqNum+ ") VALUES (" +
                 packageID+"," +
                 status+","+
@@ -867,6 +982,27 @@ public class PostgreSQLJDBC {
             e.printStackTrace();
         }
     }
+    public Integer getAUShipmentUpdateStatus(Long packageID){
+        return getIntFromTable(_aushipmentupdate,_packageId,packageID,_status);
+    }
+
+    public ArrayList<Long> getAllAUShipmentUpdate() {
+        String query = "SELECT * FROM " + _aushipmentupdate + ";";
+        ArrayList<Long> result = new ArrayList<>();
+        try {
+            Statement statement = this.c.createStatement();
+            ResultSet resultSet = statement.executeQuery(query);
+            while (resultSet.next()) {
+                result.add(resultSet.getLong(_packageId));
+            }
+            resultSet.close();
+            statement.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
+
     /******************************************************************************************************************
      * USHIPPINGRESPONSE METHOD
      ******************************************************************************************************************/
@@ -892,6 +1028,23 @@ public class PostgreSQLJDBC {
                 e.printStackTrace();
             }
         }
+    }
+
+    public ArrayList<Long> getAllUShippingResponse() {
+        String query = "SELECT * FROM " + _uShippingResponse + ";";
+        ArrayList<Long> result = new ArrayList<>();
+        try {
+            Statement statement = this.c.createStatement();
+            ResultSet resultSet = statement.executeQuery(query);
+            while (resultSet.next()) {
+                result.add(resultSet.getLong(_aSeqNum));
+            }
+            resultSet.close();
+            statement.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return result;
     }
 
     public Integer getUShippingResponseTableSize() {
@@ -925,6 +1078,22 @@ public class PostgreSQLJDBC {
         }
     }
 
+    public ArrayList<Long> getAllUTruckArrivedNotification() {
+        String query = "SELECT * FROM " + _uTruckArrivedNotification + ";";
+        ArrayList<Long> result = new ArrayList<>();
+        try {
+            Statement statement = this.c.createStatement();
+            ResultSet resultSet = statement.executeQuery(query);
+            while (resultSet.next()) {
+                result.add(resultSet.getLong(_aSeqNum));
+            }
+            resultSet.close();
+            statement.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
     public Integer getUTruckArrivedNotificationTableSize() {
         return getTableSize(_uTruckArrivedNotification);
     }
@@ -973,6 +1142,41 @@ public class PostgreSQLJDBC {
                 e.printStackTrace();
             }
         }
+    }
+
+    /******************************************************************************************************************
+     * PRODUCT METHOD
+     ******************************************************************************************************************/
+    public void addProduct(Long packageId, String description, Long count) {
+        String query = "INSERT INTO " + _product + "(" + _packageId + "," + _description + ","+_count + ") VALUES (" +
+                packageId + ", \'" +
+                description + "\' ," +
+                count +
+                ");";
+        executeStatement(query);
+        try {
+            c.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public  ArrayList<ProductInfo> getProductsOf(Long packageID){
+        ArrayList<ProductInfo> productInfoList = new ArrayList<>();
+        String query = "SELECT * FROM " + _product +" WHERE "+ _packageId + " = " +packageID+";";
+        try {
+            Statement statement = this.c.createStatement();
+            ResultSet resultSet = statement.executeQuery(query);
+            while(resultSet.next()){
+                ProductInfo productInfo = new ProductInfo(resultSet.getString(_description),resultSet.getLong(_count));
+                productInfoList.add(productInfo);
+            }
+            resultSet.close();
+            statement.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return productInfoList;
     }
 
     public void close() {
