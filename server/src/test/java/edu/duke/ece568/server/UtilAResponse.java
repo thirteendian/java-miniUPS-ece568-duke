@@ -33,9 +33,8 @@ public class UtilAResponse {
     }
 
     public WorldAmazon.AResponses.Builder recvFromWorld() throws IOException {
-        InputStream inputStream = this.amazonToUPSSocket.getInputStream();
+        InputStream inputStream = this.serverToWorldSocket.getInputStream();
         CodedInputStream codedInputStream = CodedInputStream.newInstance(inputStream);
-        //int length = codedInputStream.readRawVarint32();
         WorldAmazon.AResponses aResponses= WorldAmazon.AResponses.parseFrom(codedInputStream.readByteArray());
         return aResponses.toBuilder();
     }

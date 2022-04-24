@@ -96,31 +96,30 @@ public class TruckUpdateRunnable implements Runnable {
                     System.out.println("[TUR]       [UTrukArrivedNotification] : id: " + truckID + " aSeqNum: " + aSeqNum);
                 }
             }
-            /********************************Send UGoDeliver to World For Loaded Truck********************************/
-            ArrayList<Long> loadedTruckID = postgreSQLJDBC.getTruckGroupOfStatus(new Status().tLoaded);
-            System.out.println("[TUR]     LoadedTruckID: " + loadedTruckID);
-
-            for (Long truckID : loadedTruckID) {
-                if (!postgreSQLJDBC.getTruckIsSentUGoDeliver(truckID)) {
-                    Long wSeqNum = WSeqNumCounter.getInstance().getCurrSeqNum();
-                    WorldUps.UGoDeliver.Builder UGoDeliver = WorldUps.UGoDeliver.newBuilder();
-                    UGoDeliver.setTruckid(Math.toIntExact(truckID)).setSeqnum(wSeqNum);
-                    for (Long packageID : postgreSQLJDBC.getShipmentPackageIDWithTruckID(truckID)) {
-                        WorldUps.UDeliveryLocation.Builder uDeliveryLocation = WorldUps.UDeliveryLocation.newBuilder();
-                        uDeliveryLocation.setX(Math.toIntExact(postgreSQLJDBC.getShipmentDestX(packageID))).setY(Math.toIntExact(postgreSQLJDBC.getShipmentDestY(packageID)));
-                        uDeliveryLocation.setPackageid(packageID);
-                        UGoDeliver.addPackages(uDeliveryLocation.build());
-                    }
-                    uCommands.addDeliveries(UGoDeliver.build());
-
-                    //UGoDeliver Change WorldSpeed Faster
-                    uCommands.setSimspeed(500);
-
-                    postgreSQLJDBC.addUGoDeliver(wSeqNum, truckID);
-                    System.out.println("[TUR]    [UGoDeliver] : id: " + Math.toIntExact(truckID) + " wSeqNum: " + wSeqNum + " truckStatus: " + postgreSQLJDBC.getTruckStatus(truckID));
-                }
-                postgreSQLJDBC.updateTruckStatus(truckID,null,null,null,null,true);
-            }
+//            /********************************Send UGoDeliver to World For Loaded Truck********************************/
+//            ArrayList<Long> loadedTruckID = postgreSQLJDBC.getTruckGroupOfStatus(new Status().tLoaded);
+//            System.out.println("[TUR]     LoadedTruckID: " + loadedTruckID);
+//            for (Long truckID : loadedTruckID) {
+//                if (postgreSQLJDBC.getTruckIsSentUGoDeliver(truckID)) {
+//                    Long wSeqNum = WSeqNumCounter.getInstance().getCurrSeqNum();
+//                    WorldUps.UGoDeliver.Builder UGoDeliver = WorldUps.UGoDeliver.newBuilder();
+//                    UGoDeliver.setTruckid(Math.toIntExact(truckID)).setSeqnum(wSeqNum);
+//                    for (Long packageID : postgreSQLJDBC.getShipmentPackageIDWithTruckID(truckID)) {
+//                        WorldUps.UDeliveryLocation.Builder uDeliveryLocation = WorldUps.UDeliveryLocation.newBuilder();
+//                        uDeliveryLocation.setX(Math.toIntExact(postgreSQLJDBC.getShipmentDestX(packageID))).setY(Math.toIntExact(postgreSQLJDBC.getShipmentDestY(packageID)));
+//                        uDeliveryLocation.setPackageid(packageID);
+//                        UGoDeliver.addPackages(uDeliveryLocation.build());
+//                    }
+//                    uCommands.addDeliveries(UGoDeliver.build());
+//
+//                    //UGoDeliver Change WorldSpeed Faster
+//                    uCommands.setSimspeed(500);
+//
+//                    postgreSQLJDBC.addUGoDeliver(wSeqNum, truckID);
+//                    System.out.println("[TUR]    [UGoDeliver] : id: " + Math.toIntExact(truckID) + " wSeqNum: " + wSeqNum + " truckStatus: " + postgreSQLJDBC.getTruckStatus(truckID));
+//                    postgreSQLJDBC.updateTruckStatus(truckID,null,null,null,null,false);
+//                }
+//            }
 
             postgreSQLJDBC.close();
             worldCommand.sendUCommand(uCommands.build());

@@ -98,21 +98,30 @@ public class Server {
     }
 
     public static void main(String[] args) {
-        final String WORLD_HOST = "192.168.1.8";
-        final Integer WORLD_PORTNUM = 23456;
+//        final String WORLD_HOST = "192.168.1.8";
+        final Integer WORLD_PORTNUM = 12345;
         final Integer CLIENT_PORTNUM = 34487;
-        final String AMAZON_HOST = "0.0.0.0";
-        final Integer AMAZON_PORTNUM = 4444;
+        final String AMAZON_HOST = "127.0.0.1";
+        final Integer AMAZON_PORTNUM = 11111;
+        String WORLD_HOST = "192.168.1.8";
+
+        System.out.print("Entering Your WorldSim Host Address: ");
+        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+        try {
+            WORLD_HOST= reader.readLine();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         try {
             //Connect to World, Amazon, Establish Server to Client
             Server server = new Server(WORLD_HOST,WORLD_PORTNUM, CLIENT_PORTNUM, AMAZON_HOST, AMAZON_PORTNUM);
             server.connectToAmazon();
             server.startWorldListenerThread(false);
+            server.startTruckUpdateThread();
             server.startWorldResendThread();
             server.startAmazonListenerThread();
             server.startAmazonResendThread();
-            server.startTruckUpdateThread();
             //Client Thread
             while(true){
                 Socket clientSocket = server.acceptConnection();

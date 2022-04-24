@@ -42,8 +42,8 @@ public class WorldListenerRunnable implements Runnable {
                 e.printStackTrace();
             }
         }
+        System.out.println("WorldListenerRunnable start !");
         while (true) {
-            System.out.println("WorldListenerRunnable start !");
             try {
                 WorldUps.UResponses.Builder builder = worldResponse.recvUResponse();
                 //UFinished Arrive Warehouse Or Finished All deliveries
@@ -99,9 +99,6 @@ public class WorldListenerRunnable implements Runnable {
                     }
 
 
-
-
-
                     /**
                      * UGoDeliver
                      * If ACK is UGoDeliver
@@ -142,12 +139,12 @@ public class WorldListenerRunnable implements Runnable {
                     //-----------------------------Change Truck Status-------------------------------------------/
                     Integer truckStatus = new Status().getStatus(uTruck.getStatus());
                     postgreSQLJDBC.updateTruckStatus((long) uTruck.getTruckid(), uTruck.getX(), uTruck.getY(), null, null,null);
-                    System.out.println("[WLR]    SQLstatus: " + postgreSQLJDBC.getTruckStatus((long) uTruck.getTruckid()) + " wSeqNum: " + uTruck.getSeqnum());
-                    if (truckStatus!=new Status().tLoaded) {
+//                    System.out.println("[WLR]    SQLstatus: " + postgreSQLJDBC.getTruckStatus((long) uTruck.getTruckid()) + " wSeqNum: " + uTruck.getSeqnum());
+                    if (truckStatus !=new Status().tLoaded) {
                         postgreSQLJDBC.updateTruckStatus((long) uTruck.getTruckid(), null, null, truckStatus, null,null);
                     }
 
-                    System.out.println("[WLR]    TruckID: "+ uTruck.getTruckid() +" RCVstatus: "+ uTruck.getStatus() + " SQLstatus: " + postgreSQLJDBC.getTruckStatus((long) uTruck.getTruckid()) + " wSeqNum: " + uTruck.getSeqnum());
+//                    System.out.println("[WLR]    TruckID: "+ uTruck.getTruckid() +" RCVstatus: "+ uTruck.getStatus() + " SQLstatus: " + postgreSQLJDBC.getTruckStatus((long) uTruck.getTruckid()) + " wSeqNum: " + uTruck.getSeqnum());
                     //-----------------------------------------------Add ACK-------------------------------------------/
                     uCommandsBuilder.addAcks(uTruck.getSeqnum());
                 }
@@ -168,7 +165,7 @@ public class WorldListenerRunnable implements Runnable {
                     System.out.println("[WLR]     [UShipmentStatusUpdate]: seq: " + auShipmentStatusUpdateSeqNum);
                     //-----------------------------Put AUshipmentUpdate, ShipmentStatusUpdate to Resend List------------/
                     postgreSQLJDBC.addAUShipmentUpdate(uDeliveryMade.getPackageid(), new Status().pDelivered, auShipmentStatusUpdateSeqNum);
-                    System.out.println("[AUShipmentStatusUpdate Resend]: PackageID: " + uDeliveryMade.getPackageid() + "Delivered");
+                    System.out.println("[WLR]     [AUShipmentStatusUpdate Resend]: PackageID: " + uDeliveryMade.getPackageid() + "Delivered");
                 }
                 shipmentStatusUpdate.setSeqnum(auShipmentStatusUpdateSeqNum).build();
                 auResponseBuilder.addShipmentStatusUpdate(shipmentStatusUpdate);

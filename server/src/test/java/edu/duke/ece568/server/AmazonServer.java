@@ -22,7 +22,7 @@ public class AmazonServer {
         this.serverToWorldHost = serverToWorldHost;
         this.serverToWorldPortNum = serverToWorldPortNum;
         this.serverToWorldSocket = new Socket(this.serverToWorldHost,this.serverToWorldPortNum);
-        this.serverToUPSSocket = new ServerSocket(4444);
+        this.serverToUPSSocket = new ServerSocket(11111);
     }
     public void acceptConnection() throws IOException {
         this.UPSClientSocket = this.serverToUPSSocket.accept();

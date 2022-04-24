@@ -1,8 +1,10 @@
 package edu.duke.ece568.server.Amazon;
 
 import edu.duke.ece568.server.PostgreSQLJDBC;
+import edu.duke.ece568.server.World.WSeqNumCounter;
 import edu.duke.ece568.server.World.WorldCommand;
 import edu.duke.ece568.server.protocol.UpsAmazon;
+import edu.duke.ece568.server.protocol.WorldUps;
 import edu.duke.ece568.shared.Status;
 
 import java.io.IOException;
@@ -25,8 +27,8 @@ public class AmazonListenerRunnable implements Runnable{
 
     @Override
     public void run() {
+        System.out.println("AmazonListenerRunnable start !");
         while(true){
-            System.out.println("AmazonListenerRunnable start !");
             try {
                 UpsAmazon.AURequest.Builder builder = amazonResponse.recvFromAmazon();
                 UpsAmazon.AUResponse.Builder auResponseBuilder = UpsAmazon.AUResponse.newBuilder();
@@ -63,15 +65,33 @@ public class AmazonListenerRunnable implements Runnable{
                         }
                     }
                 }
+                WorldUps.UCommands.Builder uCommands = WorldUps.UCommands.newBuilder();
                 /********************************RECEIVE ATruckLoadedNotification**************************************/
+                //Send UGoDeliver
                 for(UpsAmazon.ATruckLoadedNotification aTruckLoadedNotification: builder.getLoadedList()){
                     auResponseBuilder.addAcks(aTruckLoadedNotification.getSeqnum());
+                    Long truckID = aTruckLoadedNotification.getTruckId();
                     Integer truckStatus = new Status().tLoaded;
-                    postgreSQLJDBC.updateTruckStatus(aTruckLoadedNotification.getTruckId(),null,null, truckStatus,null,null);
+                    System.out.println("[ALR]     LoadedTruckID: " + aTruckLoadedNotification.getTruckId());
+                    postgreSQLJDBC.updateTruckStatus(aTruckLoadedNotification.getTruckId(),null,null, truckStatus,null,true);
                     System.out.println("[ALR]     [ATruckLoadedNotification] ack: "+ aTruckLoadedNotification.getSeqnum() +" truckID: "+ aTruckLoadedNotification.getTruckId() + " truckStatus: " + postgreSQLJDBC.getTruckStatus(aTruckLoadedNotification.getTruckId()));
-                }
 
-                /********************************RECEIVE ATruckLoadedNotification**************************************/
+                    Long wSeqNum = WSeqNumCounter.getInstance().getCurrSeqNum();
+                    WorldUps.UGoDeliver.Builder UGoDeliver = WorldUps.UGoDeliver.newBuilder();
+                    UGoDeliver.setTruckid(Math.toIntExact(aTruckLoadedNotification.getTruckId())).setSeqnum(wSeqNum);
+                    for (Long packageID : postgreSQLJDBC.getShipmentPackageIDWithTruckID(truckID)) {
+                        WorldUps.UDeliveryLocation.Builder uDeliveryLocation = WorldUps.UDeliveryLocation.newBuilder();
+                        uDeliveryLocation.setX(Math.toIntExact(postgreSQLJDBC.getShipmentDestX(packageID))).setY(Math.toIntExact(postgreSQLJDBC.getShipmentDestY(packageID)));
+                        uDeliveryLocation.setPackageid(packageID);
+                        UGoDeliver.addPackages(uDeliveryLocation.build());
+                    }
+                    uCommands.addDeliveries(UGoDeliver.build());
+                    //Add to Resend Database
+                    postgreSQLJDBC.addUGoDeliver(wSeqNum, truckID);
+                    System.out.println("[ALR]    [UGoDeliver] : id: " + Math.toIntExact(truckID) + " wSeqNum: " + wSeqNum + " truckStatus: " + postgreSQLJDBC.getTruckStatus(truckID));
+                    postgreSQLJDBC.updateTruckStatus(truckID,null,null,null,null,false);
+                }
+                worldCommand.sendUCommand(uCommands.build());
                 amazonCommand.sendAUResponse(auResponseBuilder.build());
                 postgreSQLJDBC.close();
             } catch (IOException e) {
