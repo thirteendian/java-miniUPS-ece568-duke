@@ -3,9 +3,9 @@ package edu.duke.ece568.server.World;
 import edu.duke.ece568.server.Amazon.ASeqNumCounter;
 import edu.duke.ece568.server.Amazon.AmazonCommand;
 import edu.duke.ece568.server.Amazon.AmazonResponse;
-import edu.duke.ece568.server.PostgreSQLJDBC;
 import edu.duke.ece568.server.protocol.UpsAmazon;
 import edu.duke.ece568.server.protocol.WorldUps;
+import edu.duke.ece568.shared.PostgreSQLJDBC;
 import edu.duke.ece568.shared.Status;
 
 import java.net.Socket;
@@ -33,7 +33,7 @@ public class TruckUpdateRunnable implements Runnable {
         System.out.println("TruckUpdateRunnable start!");
         while (true) {
             try {
-                Thread.sleep(500);
+                Thread.sleep(5000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }

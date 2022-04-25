@@ -9,4 +9,3 @@
 
 rootProject.name = 'miniUPS'
 include ":server", ":client", ":shared"
-

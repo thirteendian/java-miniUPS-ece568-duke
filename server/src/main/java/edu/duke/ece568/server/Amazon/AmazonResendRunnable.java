@@ -1,7 +1,7 @@
 package edu.duke.ece568.server.Amazon;
 
-import edu.duke.ece568.server.PostgreSQLJDBC;
 import edu.duke.ece568.server.protocol.UpsAmazon;
+import edu.duke.ece568.shared.PostgreSQLJDBC;
 import edu.duke.ece568.shared.Status;
 
 import java.net.Socket;
@@ -22,7 +22,7 @@ public class AmazonResendRunnable implements Runnable {
         //3 Second Step
         System.out.println("AmazonResendRunnable Start!");
         try {
-            Thread.sleep(200);
+            Thread.sleep(2000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -38,7 +38,7 @@ public class AmazonResendRunnable implements Runnable {
             for (Long packageID : packageIDArrayList) {
                 UpsAmazon.UTracking.Builder uTrackingBuilder = UpsAmazon.UTracking.newBuilder().setPackageId(packageID).setTrackingNumber(packageID.toString());
                 uShippingResponseBuilder.addUTracking(uTrackingBuilder.build());
-//                System.out.println("        [uTracking]: packageID : "+ packageID);
+                System.out.println("        [uTracking]: packageID : "+ packageID);
             }
             //create UShippingResponse
             Long ASeqNum = ASeqNumCounter.getInstance().getCurrSeqNum();
@@ -55,21 +55,21 @@ public class AmazonResendRunnable implements Runnable {
             auResponse.addArrived(uTruckArrivedNotification);
             System.out.println("[ARESEND] TruckArrivedNotification: seq: " + aSeqNum + "truckID: " + postgreSQLJDBC.getUTruckArrivedNotificationTruckID(aSeqNum));
         }
-        /********************************RESEND UShipmentStatusUpdate**************************************/
-        ArrayList<Long> uShipmentStatusUpdateASeqNums = postgreSQLJDBC.getAllUShipmentStatusUpdate();
-        for (Long aSeqNum : uShipmentStatusUpdateASeqNums) {
-            UpsAmazon.UShipmentStatusUpdate.Builder uShipmentStatusUpdate = UpsAmazon.UShipmentStatusUpdate.newBuilder();
-            ArrayList<Long> auShipmentUpdatePackageIds = postgreSQLJDBC.getAllAUShipmentUpdate();
-
-            for (Long packageID : auShipmentUpdatePackageIds) {
-                UpsAmazon.AUShipmentUpdate.Builder auShipmentUpdate = UpsAmazon.AUShipmentUpdate.newBuilder();
-                auShipmentUpdate.setPackageId(packageID).setStatus(new Status().getStatus(postgreSQLJDBC.getAUShipmentUpdateStatus(packageID)));
-                uShipmentStatusUpdate.addAuShipmentUpdate(auShipmentUpdate.build());
-            }
-            auResponse.addShipmentStatusUpdate(uShipmentStatusUpdate);
-            System.out.println("[ARESEND] UShipmentStatusUpdate: seq: " + aSeqNum);
-
-        }
+//        /********************************RESEND UShipmentStatusUpdate**************************************/
+//        ArrayList<Long> uShipmentStatusUpdateASeqNums = postgreSQLJDBC.getAllUShipmentStatusUpdate();
+//        for (Long aSeqNum : uShipmentStatusUpdateASeqNums) {
+//            UpsAmazon.UShipmentStatusUpdate.Builder uShipmentStatusUpdate = UpsAmazon.UShipmentStatusUpdate.newBuilder();
+//            ArrayList<Long> auShipmentUpdatePackageIds = postgreSQLJDBC.getAllAUShipmentUpdate();
+//
+//            for (Long packageID : auShipmentUpdatePackageIds) {
+//                UpsAmazon.AUShipmentUpdate.Builder auShipmentUpdate = UpsAmazon.AUShipmentUpdate.newBuilder();
+//                auShipmentUpdate.setPackageId(packageID).setStatus(new Status().getStatus(postgreSQLJDBC.getAUShipmentUpdateStatus(packageID)));
+//                uShipmentStatusUpdate.addAuShipmentUpdate(auShipmentUpdate.build());
+//            }
+//            auResponse.addShipmentStatusUpdate(uShipmentStatusUpdate);
+//            System.out.println("[ARESEND] UShipmentStatusUpdate: seq: " + aSeqNum);
+//
+//        }
         amazonCommand.sendAUResponse(auResponse.build());
         postgreSQLJDBC.close();
     }

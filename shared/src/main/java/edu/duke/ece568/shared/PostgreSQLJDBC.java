@@ -1,4 +1,6 @@
-package edu.duke.ece568.server;
+package edu.duke.ece568.shared;
+
+import org.checkerframework.checker.units.qual.A;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -98,7 +100,8 @@ public class PostgreSQLJDBC {
             ");";
     private final String CREATE_UGODELIVER_TABLE = "CREATE TABLE IF NOT EXISTS UGODELIVER(" +
             "W_SEQNUM BIGINT PRIMARY KEY CHECK(W_SEQNUM >=0)," +
-            "TRUCK_ID BIGINT NOT NULL" +
+            "TRUCK_ID BIGINT NOT NULL," +
+            "A_SEQNUM BIGINT NOT NULL" +
             ");";
     //SELF USE TABLE TO AMAZON RESEND
     private final String CREATE_USHIPMENTSTATUSUPDATE_TABLE = "CREATE TABLE IF NOT EXISTS USHIPMENTSTATUSUPDATE(" +
@@ -149,7 +152,7 @@ public class PostgreSQLJDBC {
     public PostgreSQLJDBC() {
         try {
             Class.forName("org.postgresql.Driver");
-            this.c = DriverManager.getConnection("jdbc:postgresql://localhost:5432/ece568", "ece568", "ece568");
+            this.c = DriverManager.getConnection("jdbc:postgresql://localhost:5432/postgres", "postgres", "postgres");
             this.c.setAutoCommit(false);
             this.databaseMetaData = c.getMetaData();
         } catch (ClassNotFoundException | SQLException e) {
@@ -872,10 +875,11 @@ public class PostgreSQLJDBC {
     /******************************************************************************************************************
      * UGoDELIVERY METHOD
      ******************************************************************************************************************/
-    public void addUGoDeliver(Long seqnum, Long truckID) {
-        String query = "INSERT INTO " + _uGoDeliver + "(" + _wSeqNum + "," + _truckId + ") VALUES (" +
+    public void addUGoDeliver(Long seqnum, Long truckID, Long aSeqNum) {
+        String query = "INSERT INTO " + _uGoDeliver + "(" + _wSeqNum + "," + _truckId + "," + _aSeqNum +") VALUES (" +
                 seqnum + "," +
-                truckID +
+                truckID +"," +
+                aSeqNum+
                 ");";
         executeStatement(query);
         try {
@@ -898,6 +902,24 @@ public class PostgreSQLJDBC {
             e.printStackTrace();
         }
         return wSeqnums;
+    }
+
+    public Boolean isUGoDeliverASeqNumExist(Long ASeqNum){
+        ArrayList<Long> aSeqnums = new ArrayList<>();
+        String query = "SELECT * FROM "+ _uGoDeliver+";";
+        try {
+            Statement statement = c.createStatement();
+            ResultSet resultSet = statement.executeQuery(query);
+            while(resultSet.next()){
+                aSeqnums.add(resultSet.getLong(_aSeqNum));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        if(aSeqnums.contains(ASeqNum)){
+            return true;
+        }
+        return false;
     }
 
     public Long getUGoDeliverTruckID(Long seqnum) {

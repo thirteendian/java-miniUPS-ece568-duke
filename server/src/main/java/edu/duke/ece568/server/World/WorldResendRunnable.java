@@ -1,7 +1,7 @@
 package edu.duke.ece568.server.World;
 
-import edu.duke.ece568.server.PostgreSQLJDBC;
 import edu.duke.ece568.server.protocol.WorldUps;
+import edu.duke.ece568.shared.PostgreSQLJDBC;
 
 import java.net.Socket;
 import java.util.ArrayList;
@@ -20,7 +20,7 @@ public class WorldResendRunnable implements Runnable{
         //3 Second Step
         System.out.println("WorldResendRunnable start!");
         try {
-            Thread.sleep(100);
+            Thread.sleep(1000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

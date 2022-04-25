@@ -2,6 +2,7 @@ package edu.duke.ece568.server;
 
 import edu.duke.ece568.server.Amazon.*;
 import edu.duke.ece568.server.World.*;
+import edu.duke.ece568.shared.PostgreSQLJDBC;
 
 import java.io.*;
 import java.net.ServerSocket;

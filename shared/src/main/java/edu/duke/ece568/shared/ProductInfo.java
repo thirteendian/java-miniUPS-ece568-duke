@@ -1,4 +1,4 @@
-package edu.duke.ece568.server;
+package edu.duke.ece568.shared;
 
 public class ProductInfo {
     private String description;

@@ -2,8 +2,8 @@ package edu.duke.ece568.server.World;
 
 import com.google.protobuf.CodedOutputStream;
 import com.google.protobuf.Message;
-import edu.duke.ece568.server.PostgreSQLJDBC;
 import edu.duke.ece568.server.protocol.WorldUps;
+import edu.duke.ece568.shared.PostgreSQLJDBC;
 
 import java.io.IOException;
 import java.io.OutputStream;

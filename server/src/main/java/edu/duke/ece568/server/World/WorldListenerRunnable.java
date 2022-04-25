@@ -2,14 +2,15 @@ package edu.duke.ece568.server.World;
 
 import edu.duke.ece568.server.Amazon.ASeqNumCounter;
 import edu.duke.ece568.server.Amazon.AmazonCommand;
-import edu.duke.ece568.server.PostgreSQLJDBC;
 import edu.duke.ece568.server.protocol.UpsAmazon;
 import edu.duke.ece568.server.protocol.WorldUps;
+import edu.duke.ece568.shared.PostgreSQLJDBC;
 import edu.duke.ece568.shared.Status;
 
 import java.io.IOException;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.UUID;
 
 public class WorldListenerRunnable implements Runnable {
@@ -140,7 +141,7 @@ public class WorldListenerRunnable implements Runnable {
                     Integer truckStatus = new Status().getStatus(uTruck.getStatus());
                     postgreSQLJDBC.updateTruckStatus((long) uTruck.getTruckid(), uTruck.getX(), uTruck.getY(), null, null,null);
 //                    System.out.println("[WLR]    SQLstatus: " + postgreSQLJDBC.getTruckStatus((long) uTruck.getTruckid()) + " wSeqNum: " + uTruck.getSeqnum());
-                    if (truckStatus !=new Status().tLoaded) {
+                    if (!Objects.equals(truckStatus, new Status().tLoaded)) {
                         postgreSQLJDBC.updateTruckStatus((long) uTruck.getTruckid(), null, null, truckStatus, null,null);
                     }
 
@@ -181,7 +182,7 @@ public class WorldListenerRunnable implements Runnable {
                     //if Complete UGoPickUp, last status traveling, curr status arrive warehouse
                     Integer status = postgreSQLJDBC.getTruckStatus((long) finished.getTruckid());
                     System.out.println("[WLR]    TruckID: " + finished.getTruckid() + " SQLStatus: " + status + " WorldTruckStatus: " + finished.getStatus());
-                    if (((status == new Status().tTraveling) || status == new Status().tArriveWarehouse) && (new Status().getStatus(finished.getStatus()) == new Status().tArriveWarehouse)) {
+                    if (((Objects.equals(status, new Status().tTraveling)) || Objects.equals(status, new Status().tArriveWarehouse)) && (Objects.equals(new Status().getStatus(finished.getStatus()), new Status().tArriveWarehouse))) {
                         postgreSQLJDBC.updateTruckStatus((long) finished.getTruckid(), finished.getX(), finished.getY(), new Status().getStatus(finished.getStatus()), null,null);
                         //Send to Amazon UTruckArrivedNotification
                         amazonCommand.sendUTruckArrivedNotification((long) finished.getTruckid(), aSeqNum);
@@ -190,7 +191,7 @@ public class WorldListenerRunnable implements Runnable {
                         System.out.println("[Complete]: UGoPickUp: seq: " + finished.getSeqnum() + " TruckID " + finished.getTruckid());
                     }
                     //if Complete Delivering, last status delivering, curr status idle, isSentUGoPickUp is false
-                    else if (((status == new Status().tDelivering) || (status == new Status().tIdel)) && (new Status().getStatus(finished.getStatus()) == new Status().tIdel)) {
+                    else if (((Objects.equals(status, new Status().tDelivering)) || (Objects.equals(status, new Status().tIdel))) && (Objects.equals(new Status().getStatus(finished.getStatus()), new Status().tIdel))) {
                         postgreSQLJDBC.updateTruckStatus((long) finished.getTruckid(), finished.getX(), finished.getY(), new Status().getStatus(finished.getStatus()), false,false);
                         System.out.println("[Complete]: All Delivering: seq:" + finished.getSeqnum() + " TruckID " + finished.getTruckid());
                     } else {
