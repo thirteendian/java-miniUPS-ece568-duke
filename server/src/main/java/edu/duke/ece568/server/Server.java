@@ -22,6 +22,7 @@ public class Server {
     private Socket serverToAmazonSocket;
     private final String serverToAmazonHost;
     private final int serverToAmazonPortNum;
+    private ServerSocket serverToAmazonServerSocket;
 
     //Command
     private WorldCommand worldCommand;
@@ -42,9 +43,10 @@ public class Server {
         //Establish Connection with Client
         this.serverToClientPortNum = serverToClientPortNum;
         this.serverSocket = new ServerSocket(this.serverToClientPortNum);
-        //Establish Connection with Amazon(If as Server)
+        //Establish Connection with Amazon(If as Client)
         this.serverToAmazonPortNum = serverToAmazonPortNum;
         this.serverToAmazonHost = serverToAmazonHost;
+//        this.serverToAmazonServerSocket = new ServerSocket(11111);
     }
 
     public Socket acceptConnection() throws IOException {
@@ -52,7 +54,7 @@ public class Server {
         return clientSocket;
     }
     public void connectToAmazon() throws IOException {
-        this.serverToAmazonSocket = new Socket(this.serverToAmazonHost,this.serverToAmazonPortNum);
+        this.serverToAmazonSocket = new Socket(serverToAmazonHost, serverToAmazonPortNum);
         this.worldCommand = new WorldCommand(serverToWorldSocket);
         this.worldResponse = new WorldResponse(serverToWorldSocket);
         this.amazonCommand = new AmazonCommand(serverToAmazonSocket);
@@ -101,17 +103,18 @@ public class Server {
 //        final String WORLD_HOST = "192.168.1.8";
         final Integer WORLD_PORTNUM = 12345;
         final Integer CLIENT_PORTNUM = 34487;
-        final String AMAZON_HOST = "127.0.0.1";
+        final String AMAZON_HOST = "vcm-24634.vm.duke.edu";
         final Integer AMAZON_PORTNUM = 11111;
-        String WORLD_HOST = "192.168.1.8";
+        String WORLD_HOST = "vcm-26151.vm.duke.edu";
 
-        System.out.print("Entering Your WorldSim Host Address: ");
-        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-        try {
-            WORLD_HOST= reader.readLine();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+
+//        System.out.print("Entering Your WorldSim Host Address: ");
+//        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+//        try {
+//            WORLD_HOST= reader.readLine();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
 
         try {
             //Connect to World, Amazon, Establish Server to Client

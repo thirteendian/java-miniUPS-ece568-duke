@@ -119,7 +119,7 @@ public class WorldListenerRunnable implements Runnable {
                             UpsAmazon.UTracking.Builder uTracking = UpsAmazon.UTracking.newBuilder();
                             postgreSQLJDBC.updateShipmentStatus(packageID,new Status().pDelivering);
                             System.out.println("[WLR]      [uGoDeliver ACK]: packageID : " + packageID + " Status: " + postgreSQLJDBC.getShipmentStatus(packageID));
-                            uTracking.setPackageId(packageID).setTrackingNumber(postgreSQLJDBC.getShipmentTrackingNum(packageID));
+                            uTracking.setPackageId(packageID).setTrackingNumber(String.valueOf(packageID));//TODO: ChangeBack postgreSQLJDBC.getShipmentTrackingNum(packageID));
                             uShippingResponse.addUTracking(uTracking.build());
                         }
                         Long UShippingResponseSeqNum = ASeqNumCounter.getInstance().getCurrSeqNum();

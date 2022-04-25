@@ -67,8 +67,6 @@ public class TruckUpdateRunnable implements Runnable {
                     System.out.println("[TUR]     [Match Idel Truck] [ShippingRequest] DELETE ShippingRequestID: " + shippingRequestID.get(i) + " ASeqNum: " + ASeqNum + "PackageIDs : " + packageIDs);
                     //delete this shipping request
                     postgreSQLJDBC.deleteShippingRequest(shippingRequestID.get(i));
-
-
                     //Add UGoPickUp to uCommands
                     Long wareHouseID = postgreSQLJDBC.getShipmentWarehouseID(packageIDs.get(0));//Any package should contains the same wareHouse ID
                     WorldUps.UGoPickup.Builder uGoPickup = WorldUps.UGoPickup.newBuilder();
@@ -102,7 +100,7 @@ public class TruckUpdateRunnable implements Runnable {
                     //Add to Resend
                     postgreSQLJDBC.addUTruckArrivedNotification(aSeqNum, truckID);
                     postgreSQLJDBC.updateTruckStatus(truckID, null, null, null, true, null);
-                    System.out.println("[TUR]       [UTrukArrivedNotification] : id: " + truckID + " aSeqNum: " + aSeqNum);
+                    System.out.println("[TUR]       [UTrukArrivedNotification] sent to Amazon : id: " + truckID + " aSeqNum: " + aSeqNum);
                 }
             }
 //            /********************************Send UGoDeliver to World For Loaded Truck********************************/
@@ -129,7 +127,6 @@ public class TruckUpdateRunnable implements Runnable {
 //                    postgreSQLJDBC.updateTruckStatus(truckID,null,null,null,null,false);
 //                }
 //            }
-
             postgreSQLJDBC.close();
             worldCommand.sendUCommand(uCommands.build());
             amazonCommand.sendAUResponse(auResponse.build());
