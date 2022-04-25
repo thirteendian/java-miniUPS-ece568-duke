@@ -10,13 +10,15 @@ import edu.duke.ece568.shared.Status;
 
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.HashSet;
 
 public class TruckUpdateRunnable implements Runnable {
-    Socket serverToWorldSocket;
-    Socket serverToAmazonSocket;
-    AmazonCommand amazonCommand;
-    WorldCommand worldCommand;
-    AmazonResponse amazonResponse;
+    private Socket serverToWorldSocket;
+    private Socket serverToAmazonSocket;
+    private AmazonCommand amazonCommand;
+    private WorldCommand worldCommand;
+    private AmazonResponse amazonResponse;
+//    private HashSet<Long>
 
     public TruckUpdateRunnable(Socket serverToWorldSocket, Socket serverToAmazonSocket, AmazonCommand amazonCommand, WorldCommand worldCommand, AmazonResponse amazonResponse) {
         this.serverToWorldSocket = serverToWorldSocket;
@@ -43,33 +45,40 @@ public class TruckUpdateRunnable implements Runnable {
             ArrayList<Long> IdelTruckId = postgreSQLJDBC.getTruckGroupOfStatus(new Status().tIdel);
             //Get Number of ShippingRequest by Limit of IdelTruck Number (<= IdelTruckNumber)
             ArrayList<Long> shippingRequestID = postgreSQLJDBC.getNumOfShippingRequestByOrder(IdelTruckId.size());
+//            System.out.println("[TUR]     All ShippingRequestID: " + shippingRequestID);
 //            System.out.println("[TUR] Search Idel Truck");
             for (Integer i = 0; i < shippingRequestID.size(); i++) {
+
                 Long truckId = IdelTruckId.get(i);
                 //SELECT PACKAGE ID FROM SHIPMENT WHERE SHIPPINGID = id
                 //get all packages within one shippingrequest that has same warehouseid
                 ArrayList<Long> packageIDs = postgreSQLJDBC.getShipmentPackageIDWithShippingID(shippingRequestID.get(i));
-                for (Long packageId : packageIDs) {
-                    postgreSQLJDBC.updateShipmentTruckID(packageId, IdelTruckId.get(i));
+                if (packageIDs.size() != 0) {
+                    for (Long packageId : packageIDs) {
+                        postgreSQLJDBC.updateShipmentTruckID(packageId, IdelTruckId.get(i));
+                    }
+
+                    //Corresponding AShippingRquest ASeqNum
+                    Long ASeqNum = postgreSQLJDBC.getShippingRequestASeqNum(shippingRequestID.get(i));
+
+                    //New WSeqNum
+                    Long wSeqNum = WSeqNumCounter.getInstance().getCurrSeqNum();
+
+                    System.out.println("[TUR]     [Match Idel Truck] [ShippingRequest] DELETE ShippingRequestID: " + shippingRequestID.get(i) + " ASeqNum: " + ASeqNum + "PackageIDs : " + packageIDs);
+                    //delete this shipping request
+                    postgreSQLJDBC.deleteShippingRequest(shippingRequestID.get(i));
+
+
+                    //Add UGoPickUp to uCommands
+                    Long wareHouseID = postgreSQLJDBC.getShipmentWarehouseID(packageIDs.get(0));//Any package should contains the same wareHouse ID
+                    WorldUps.UGoPickup.Builder uGoPickup = WorldUps.UGoPickup.newBuilder();
+                    //Note since all packages has same warehouseid within same Shipment
+                    uGoPickup.setTruckid(Math.toIntExact(truckId)).setSeqnum(wSeqNum).setWhid(Math.toIntExact(wareHouseID));
+                    uCommands.addPickups(uGoPickup);
+                    //Add UGoPickUp to Resend
+                    postgreSQLJDBC.addUGoPickup(wSeqNum, truckId, ASeqNum, wareHouseID);
+                    System.out.println("[TUR]    [UGoPickUp] : id: " + truckId + " wSeqNum: " + wSeqNum);
                 }
-
-                //Corresponding AShippingRquest ASeqNum
-                Long ASeqNum = postgreSQLJDBC.getShippingRequestASeqNum(shippingRequestID.get(i));
-                //New WSeqNum
-                Long wSeqNum = WSeqNumCounter.getInstance().getCurrSeqNum();
-
-                //delete this shipping request
-                postgreSQLJDBC.deleteShippingRequest(shippingRequestID.get(i));
-
-                //Add UGoPickUp to uCommands
-                Long wareHouseID = postgreSQLJDBC.getShipmentWarehouseID(packageIDs.get(0));
-                WorldUps.UGoPickup.Builder uGoPickup = WorldUps.UGoPickup.newBuilder();
-                //Note since all packages has same warehouseid within same Shipment
-                uGoPickup.setTruckid(Math.toIntExact(truckId)).setSeqnum(wSeqNum).setWhid(Math.toIntExact(wareHouseID));
-                uCommands.addPickups(uGoPickup);
-                //Add UGoPickUp to Resend
-                postgreSQLJDBC.addUGoPickup(wSeqNum, truckId, ASeqNum, wareHouseID);
-                System.out.println("[TUR]    [UGoPickUp] : id: " + truckId + " wSeqNum: " + wSeqNum);
             }
 
             /********************************Send U Query to Ask Truck Status*****************************************/

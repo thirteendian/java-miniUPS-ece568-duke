@@ -18,8 +18,9 @@ public class WorldResendRunnable implements Runnable{
     @Override
     public void run() {
         //3 Second Step
+        System.out.println("WorldResendRunnable start!");
         try {
-            Thread.sleep(1000);
+            Thread.sleep(100);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

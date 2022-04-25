@@ -20,8 +20,9 @@ public class AmazonResendRunnable implements Runnable{
     @Override
     public void run() {
         //3 Second Step
+        System.out.println("AmazonResendRunnable Start!");
         try {
-            Thread.sleep(3000);
+            Thread.sleep(200);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

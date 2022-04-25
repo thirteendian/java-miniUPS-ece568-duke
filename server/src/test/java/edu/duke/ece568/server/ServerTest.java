@@ -65,8 +65,7 @@ public class ServerTest {
         System.out.print(" worldID: ");
         System.out.println(aConnected.getWorldid());
 
-        //Buy From warehouse 1
-
+        //AMAZON BUY
         WorldAmazon.ACommands.Builder aCommandPurchase = WorldAmazon.ACommands.newBuilder();
         WorldAmazon.APurchaseMore.Builder aPurchaseMore = WorldAmazon.APurchaseMore.newBuilder();
         WorldAmazon.AProduct.Builder aProduct = WorldAmazon.AProduct.newBuilder();
@@ -79,12 +78,13 @@ public class ServerTest {
         while (true) {
             WorldAmazon.AResponses.Builder aResponses = aResponse.recvFromWorld();
             if (aResponses.getArrivedList().size() != 0) {
-                System.out.println("[MAIN]      [AMAZON Arrived] aSeqNum: " + aResponses.getArrived(0).getSeqnum() + " ACK: " + aResponses.getAcks(0));
+                System.out.println("[MAIN]      [AMAZON Arrived] aSeqNum: " + aResponses.getArrived(0).getSeqnum());
                 break;
             }
-            aCommand.sendACommand(aCommandPurchase.build());
+            aCommand.sendACommand(aCommandPurchase.setSimspeed(500).build());
         }
 
+        //AMAZON PACK
         WorldAmazon.APack.Builder aPack = WorldAmazon.APack.newBuilder();
         aPack.setWhnum(1).setSeqnum(888889L).setShipid(1L).addThings(aProduct.build());
         WorldAmazon.ACommands.Builder aCommandsPack = WorldAmazon.ACommands.newBuilder().addTopack(aPack.build());
@@ -94,10 +94,10 @@ public class ServerTest {
         while (true) {
             WorldAmazon.AResponses.Builder aResponses = aResponse.recvFromWorld();
             if (aResponses.getReadyList().size() != 0) {
-                System.out.println("[MAIN]      [AMAZON Pack] aSeqNum: " + aResponses.getReady(0).getSeqnum() + " ACK: " + aResponses.getAcks(0));
+                System.out.println("[MAIN]      [AMAZON Pack] aSeqNum: " + aResponses.getReady(0).getSeqnum());
                 break;
             }
-            aCommand.sendACommand(aCommandsPack.setSimspeed(500).build());
+            aCommand.sendACommand(aCommandsPack.setSimspeed(700).build());
         }
 
 
@@ -120,6 +120,7 @@ public class ServerTest {
                 System.out.println("[MAIN]      [UTruckArrivedNotification]  truckID: " + auResponse.getArrived(0).getTruckId() + " aSeqNum: " + auResponse.getArrived(0).getSeqnum());
                 break;
             }
+//            aCommand.sendAURequest(auRequest.build());
         }
 
 
@@ -134,6 +135,7 @@ public class ServerTest {
                 System.out.println("[MAIN]      [AMAZON loaded] aSeqNum: " + aResponses.getLoaded(0).getSeqnum());
                 break;
             }
+            aCommand.sendACommand(responsesLoad.setSimspeed(1000).build());
         }
 
 
@@ -259,6 +261,7 @@ public class ServerTest {
                 System.out.println("[MAIN]      [AMAZON loaded] aSeqNum: " + aResponses.getLoaded(0).getSeqnum());
                 break;
             }
+            aCommand.sendACommand(responsesLoad.setSimspeed(500).build());
         }
 
 

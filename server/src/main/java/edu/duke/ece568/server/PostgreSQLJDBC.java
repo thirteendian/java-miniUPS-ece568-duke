@@ -688,6 +688,9 @@ public class PostgreSQLJDBC {
         return getTableSize(_shipment);
     }
 
+    public Boolean isShipmentPackageIDExist(Long packageID){
+        return isPrimaryKeyExist(_shipment,_packageId,packageID);
+    }
     public void deleteShipment(Long packageID) {
         deleteEntry(_shipment, _packageId, packageID);
         try {
@@ -723,6 +726,10 @@ public class PostgreSQLJDBC {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+
+    public Boolean isWarehouseExist(Long warehouseID){
+        return isPrimaryKeyExist(_warehouse,_warehouseId,warehouseID);
     }
 
     public Long getWarehouseX(Long warehouseID) {
@@ -1131,6 +1138,22 @@ public class PostgreSQLJDBC {
 
     public Long getShippingRequestASeqNum(Long shippingID) {
         return getLongFromTable(_shippingRequest, _shippingId, shippingID, _aSeqNum);
+    }
+
+    public Boolean isShippingRequestExist(Long seqNum){
+        String query = "SELECT * FROM " + _shippingRequest + " WHERE " + _aSeqNum + " = "+ seqNum + ";";
+        try {
+            Statement statement = this.c.createStatement();
+            ResultSet resultSet = statement.executeQuery(query);
+            if(resultSet.next()){
+                return true;
+            }
+            resultSet.close();
+            statement.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 
     public void deleteShippingRequest(Long shippingID) {

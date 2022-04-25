@@ -42,7 +42,7 @@ public class Server {
         //Establish Connection with Client
         this.serverToClientPortNum = serverToClientPortNum;
         this.serverSocket = new ServerSocket(this.serverToClientPortNum);
-        //Establish Connection with Amazon
+        //Establish Connection with Amazon(If as Server)
         this.serverToAmazonPortNum = serverToAmazonPortNum;
         this.serverToAmazonHost = serverToAmazonHost;
     }
