@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html xmlns:th="https://www.thymeleaf.org">
+<head>
+    <title>Mini UPS</title>
+    <link rel="stylesheet" type="text/css" href="index.css">
+    <link href="https://fonts.googleapis.com/css2?family=Jost:wght@500&display=swap" rel="stylesheet">
+</head>
+<body>
+<label for="chk" aria-hidden="true">Welcome to Mini UPS</label><br/>
+<div class="tracking">
+    <form action="/information" method="get">
+        <button type="submit">Tracking</button>
+    </form>
+</div>
+
+<div class="main">
+    <input type="checkbox" id="chk" aria-hidden="true">
+
+    <div class="signup">
+        <form action = "/signup">
+            <label for="chk" aria-hidden="true">Sign up</label>
+            <button type="submit">Sign up</button>
+        </form>
+    </div>
+
+    <div class="login">
+        <form action = "/login">
+            <label for="chk" aria-hidden="true">Login</label>
+            <button>Login</button>
+        </form>
+    </div>
+</div>
+</body>
+</html>

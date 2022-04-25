@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<html xmlns:th="https://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<form action="#" th:action="@{/update}" th:object="${newdest}" method="post">
+    <label>Tracking Number</label>
+    <input type="text" th:field="*{trackingNum}" />
+    <label>Destination X</label>
+    <input type="text" th:field="*{x_dest}" />
+    <label>Destination Y</label>
+    <input type="text" th:field="*{y_dest}" />
+    <button type="submit"/>Submit</button>
+</form>
+</body>
+</html>

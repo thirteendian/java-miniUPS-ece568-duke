@@ -10,6 +10,7 @@ import edu.duke.ece568.shared.Status;
 import java.io.IOException;
 import java.net.Socket;
 import java.util.HashSet;
+import java.util.Properties;
 import java.util.UUID;
 
 public class AmazonListenerRunnable implements Runnable {
@@ -79,6 +80,12 @@ public class AmazonListenerRunnable implements Runnable {
                                     postgreSQLJDBC.addProduct(aShipment.getPackageId(), product.getDescription(), (long) product.getCount());
                                     System.out.println("    [Product]: description: " + product.getDescription() + " count: " + product.getCount());
                                 }
+
+//                                //Send Email
+//                                Properties prop = new Properties();
+//                                prop.put("mail.smtp.auth", true)
+//                                String emailAddress = aShipment.getEmailaddress();
+//                                String emailHost = "dukeece568yxkc@gmail.com";
                             }
                         }
                     }

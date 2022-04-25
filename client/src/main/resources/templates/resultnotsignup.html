@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html xmlns:th="https://www.thymeleaf.org">
+<head>
+    <title>Mini UPS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Jost:wght@500&display=swap" rel="stylesheet">
+</head>
+<body>
+<h1>Result</h1>
+Please Sign In to see Package Information
+
+<p th:text="'TrackingNum: ' + ${information.trackingNum}" />
+<p th:text="'PackageID: ' + ${information.shipment.package_id}" />
+<p th:text="'DestX: ' + ${information.shipment.x}" />
+<p th:text="'DestY: ' + ${information.shipment.y}" />
+<p th:text="'Status: ' + ${information.status}" />
+
+<form action="/update" method="get">
+    <label>Change Destination: Note only when Package is IN WAREHOUSE will take effect</label>
+    <button type="submit"/>Change Delivery Destination</button>
+</form>
+
+</body>
+</html>

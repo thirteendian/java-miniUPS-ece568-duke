@@ -27,6 +27,9 @@ dependencies {
     implementation group: 'com.google.protobuf', name: 'protobuf-java', version: '3.20.0'
     // https://mvnrepository.com/artifact/org.postgresql/postgresql
     implementation group: 'org.postgresql', name: 'postgresql', version: '42.3.3'
+    // https://mvnrepository.com/artifact/javax.mail/mail
+    implementation group: 'javax.mail', name: 'mail', version: '1.4.1'
+
 
 
 }

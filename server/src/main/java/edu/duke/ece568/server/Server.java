@@ -104,9 +104,9 @@ public class Server {
 //        final String WORLD_HOST = "192.168.1.8";
         final Integer WORLD_PORTNUM = 12345;
         final Integer CLIENT_PORTNUM = 34487;
-        final String AMAZON_HOST = "vcm-24634.vm.duke.edu";
-        final Integer AMAZON_PORTNUM = 11111;
-        String WORLD_HOST = "vcm-26151.vm.duke.edu";
+        final String AMAZON_HOST = "vcm-24627.vm.duke.edu";
+        final Integer AMAZON_PORTNUM = 12345;
+        String WORLD_HOST = "vcm-25470.vm.duke.edu";
 
 
 //        System.out.print("Entering Your WorldSim Host Address: ");

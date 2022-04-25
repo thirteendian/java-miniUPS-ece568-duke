@@ -28,6 +28,13 @@ public class TruckUpdateRunnable implements Runnable {
         this.amazonResponse = amazonResponse;
     }
 
+    private void popTruckwithClosestDistance(ArrayList<Long> idelTruckID) {
+        PostgreSQLJDBC postgreSQLJDBC = new PostgreSQLJDBC();
+        for (Integer i = 0; i < idelTruckID.size(); i++) {
+            postgreSQLJDBC.getTruckStatus(idelTruckID.get(i));
+        }
+    }
+
     @Override
     public void run() {
         System.out.println("TruckUpdateRunnable start!");
@@ -43,6 +50,7 @@ public class TruckUpdateRunnable implements Runnable {
             PostgreSQLJDBC postgreSQLJDBC = new PostgreSQLJDBC();
             /********************************Search Idel Truck, Send UGoPickUp*****************************************/
             ArrayList<Long> IdelTruckId = postgreSQLJDBC.getTruckGroupOfStatus(new Status().tIdel);
+            popTruckwithClosestDistance(IdelTruckId);
             //Get Number of ShippingRequest by Limit of IdelTruck Number (<= IdelTruckNumber)
             ArrayList<Long> shippingRequestID = postgreSQLJDBC.getNumOfShippingRequestByOrder(IdelTruckId.size());
 //            System.out.println("[TUR]     All ShippingRequestID: " + shippingRequestID);
