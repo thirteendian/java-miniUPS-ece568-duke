@@ -34,11 +34,11 @@ public class AmazonListenerRunnable implements Runnable {
     public void run() {
         System.out.println("AmazonListenerRunnable start !");
         while (true) {
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+//            try {
+//                Thread.sleep(1000);
+//            } catch (InterruptedException e) {
+//                e.printStackTrace();
+//            }
             try {
                 UpsAmazon.AURequest.Builder builder = amazonResponse.recvFromAmazon();
                 UpsAmazon.AUResponse.Builder auResponseBuilder = UpsAmazon.AUResponse.newBuilder();
